@@ -295,6 +295,21 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
         events.push(eventItem);
       };
 
+      const isFacultyText = (str: string) => {
+        const s = str.trim();
+        if (/^(Dr|Prof|Mr|Ms|Mrs)\.?\s+/i.test(s)) return true;
+        if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+[A-Z]{1,3}(?:\s*\(.*?\))?$/.test(s)) return true;
+        return false;
+      };
+
+      let partnerFaculty = facultyVal;
+      if (!partnerFaculty && c + 3 < row.length) {
+        const candidate = String(row[c + 2] || row[c + 3] || '').trim();
+        if (isFacultyText(candidate)) {
+          partnerFaculty = candidate;
+        }
+      }
+
       const subjHasTime = /\b\d{1,2}[:.]\d{2}\b/.test(subjectVal);
       const facHasTime = /\b\d{1,2}[:.]\d{2}\b/.test(facultyVal);
 
@@ -303,12 +318,12 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
         processCellText(subjectVal, defaultRawTime);
         processCellText(facultyVal, defaultRawTime);
       } else if (subjHasTime) {
-        processCellText(subjectVal, defaultRawTime, facultyVal);
+        processCellText(subjectVal, defaultRawTime, partnerFaculty);
       } else if (facHasTime) {
-        processCellText(facultyVal, defaultRawTime, subjectVal);
+        processCellText(facultyVal, defaultRawTime, partnerFaculty);
       } else {
         // Standard subject + faculty pair
-        processCellText(subjectVal || facultyVal, defaultRawTime, facultyVal !== subjectVal ? facultyVal : '');
+        processCellText(subjectVal || facultyVal, defaultRawTime, partnerFaculty !== subjectVal ? partnerFaculty : '');
       }
     }
   }
