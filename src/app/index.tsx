@@ -207,6 +207,7 @@ export default function HomeScreen() {
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(getTodayDateString());
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
   const [declutterEnabled, setDeclutterEnabled] = useState(false);
+  const [filterPastEvents, setFilterPastEvents] = useState(true);
   const rollingDays = getRollingDays();
 
   const handleSelectDate = (dateStr: string | null) => {
@@ -234,24 +235,29 @@ export default function HomeScreen() {
     }
   };
 
-  // Load saved schedule and check notification permissions
   useEffect(() => {
-    async function initApp() {
+    const loadInitialData = async () => {
       const savedEvents = await getEvents();
-      setEvents(savedEvents);
-
-      const savedOffset = await getDefaultReminderOffset();
-      setDefaultReminderOffset(savedOffset);
-
-      const hasPerm = await requestNotificationPermissions();
-      setPermissionGranted(hasPerm);
-
-      // If we have saved events, verify they are scheduled
-      if (savedEvents.length > 0 && hasPerm) {
-        await scheduleAllEvents(savedEvents);
+      const todayStr = getTodayDateString();
+      // Real-time auto-prune past dated events on application startup
+      const activeEvents = savedEvents.filter((e: ScheduleEvent) => !e.date || e.date >= todayStr);
+      setEvents(activeEvents);
+      if (activeEvents.length !== savedEvents.length) {
+        await saveEvents(activeEvents);
       }
-    }
-    initApp();
+
+      const offset = await getDefaultReminderOffset();
+      setDefaultReminderOffset(offset);
+
+      const status = await requestNotificationPermissions();
+      setPermissionGranted(status);
+
+      if (status && activeEvents.length > 0) {
+        await scheduleAllEvents(activeEvents);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   const handleRequestPermission = async () => {
@@ -345,7 +351,13 @@ export default function HomeScreen() {
   };
 
   const handleReplaceConfirm = async () => {
-    const updated = [...pendingEvents];
+    const todayStr = getTodayDateString();
+    const eventsToImport = filterPastEvents 
+      ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+      : pendingEvents;
+    const prunedCount = pendingEvents.length - eventsToImport.length;
+
+    const updated = [...eventsToImport];
     setEvents(updated);
     await saveEvents(updated);
     setSelectedTab('all');
@@ -354,15 +366,21 @@ export default function HomeScreen() {
     
     if (permissionGranted) {
       const count = await scheduleAllEvents(updated);
-      showAlert('Sync Successful', `Replaced schedule and set ${count} alarms on your phone.`);
+      showAlert('Sync Successful', `Replaced schedule with ${eventsToImport.length} active classes (${prunedCount} past events auto-deleted) and set ${count} alarms.`);
     } else {
-      showAlert('Import Completed', `Imported ${updated.length} events successfully.`);
+      showAlert('Import Completed', `Imported ${eventsToImport.length} active classes successfully (${prunedCount} past events deleted).`);
     }
     setLoading(false);
   };
 
   const handleAppendConfirm = async () => {
-    const updated = [...events, ...pendingEvents];
+    const todayStr = getTodayDateString();
+    const eventsToImport = filterPastEvents 
+      ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+      : pendingEvents;
+    const prunedCount = pendingEvents.length - eventsToImport.length;
+
+    const updated = [...events, ...eventsToImport];
     setEvents(updated);
     await saveEvents(updated);
     setSelectedTab('all');
@@ -371,9 +389,9 @@ export default function HomeScreen() {
 
     if (permissionGranted) {
       const count = await scheduleAllEvents(updated);
-      showAlert('Sync Successful', `Updated schedule and set ${count} alarms on your phone.`);
+      showAlert('Sync Successful', `Updated schedule with ${eventsToImport.length} active classes (${prunedCount} past events auto-deleted) and set ${count} alarms.`);
     } else {
-      showAlert('Import Completed', `Imported ${updated.length} events successfully.`);
+      showAlert('Import Completed', `Imported ${eventsToImport.length} active classes successfully (${prunedCount} past events deleted).`);
     }
     setLoading(false);
   };
@@ -859,8 +877,14 @@ export default function HomeScreen() {
 
         {/* Import Choice & Routine Preview Modal */}
         {modalVisible && (() => {
-          const pendingDates = Array.from(new Set(pendingEvents.map(e => e.date).filter(Boolean))).sort();
-          const startDateLabel = pendingDates[0] || 'Repeating Agenda';
+          const todayStr = getTodayDateString();
+          const activePendingEvents = filterPastEvents 
+            ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+            : pendingEvents;
+          const pastEventsCount = pendingEvents.length - activePendingEvents.length;
+
+          const pendingDates = Array.from(new Set(activePendingEvents.map(e => e.date).filter(Boolean))).sort();
+          const startDateLabel = pendingDates[0] || 'Today';
           const endDateLabel = pendingDates.length > 1 ? pendingDates[pendingDates.length - 1] : startDateLabel;
 
           return (
@@ -870,17 +894,38 @@ export default function HomeScreen() {
                 
                 <View style={styles.previewMetaBox}>
                   <Text style={[styles.previewMetaLabel, { color: theme.textSecondary }]}>
-                    📅 Date Range Identified: <Text style={{ color: theme.text, fontWeight: '700' }}>{startDateLabel} → {endDateLabel}</Text>
+                    📅 Date Range: <Text style={{ color: theme.text, fontWeight: '700' }}>{startDateLabel} → {endDateLabel}</Text>
                   </Text>
                   <Text style={[styles.previewMetaLabel, { color: theme.textSecondary }]}>
-                    📚 Classes Extracted: <Text style={{ color: '#208AEF', fontWeight: '700' }}>{pendingEvents.length} Sessions</Text>
+                    📚 Active/Upcoming Classes: <Text style={{ color: '#208AEF', fontWeight: '700' }}>{activePendingEvents.length} Sessions</Text>
                   </Text>
+                  {pastEventsCount > 0 && filterPastEvents && (
+                    <Text style={[styles.previewMetaLabel, { color: '#E53935', fontWeight: '600' }]}>
+                      🧹 Outdated Past Events: <Text style={{ fontWeight: '700' }}>{pastEventsCount} Sessions (Auto-deleted)</Text>
+                    </Text>
+                  )}
                 </View>
+
+                {/* Real-time Past Date Filter Toggle */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.pastFilterToggleRow,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => setFilterPastEvents(!filterPastEvents)}
+                >
+                  <Text style={[styles.pastFilterToggleText, { color: filterPastEvents ? '#208AEF' : theme.text }]}>
+                    {filterPastEvents ? '✅ Real-Time Past Date Pruning (Active)' : '⚠️ Include Outdated Past Dates'}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: theme.textSecondary, marginTop: 2 }}>
+                    {filterPastEvents ? `Auto-deletes ${pastEventsCount} outdated past events before ${todayStr}` : 'All past events will be kept'}
+                  </Text>
+                </Pressable>
 
                 <Text style={[styles.previewSubTitle, { color: theme.text }]}>Class Schedule Routine Preview:</Text>
                 
                 <ScrollView style={styles.previewListScroll} nestedScrollEnabled showsVerticalScrollIndicator={true}>
-                  {pendingEvents.map((item, idx) => (
+                  {activePendingEvents.map((item, idx) => (
                     <View key={idx} style={styles.previewRowItem}>
                       <View style={styles.previewRowTimeBadge}>
                         <Text style={styles.previewRowTimeText}>{item.time}</Text>
@@ -1498,6 +1543,18 @@ const styles = StyleSheet.create({
   },
   previewMetaLabel: {
     fontSize: 12,
+  },
+  pastFilterToggleRow: {
+    padding: Spacing.two,
+    borderRadius: Spacing.one + 4,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 138, 239, 0.3)',
+    backgroundColor: 'rgba(32, 138, 239, 0.05)',
+    marginBottom: Spacing.two,
+  },
+  pastFilterToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   previewSubTitle: {
     fontSize: 13,
