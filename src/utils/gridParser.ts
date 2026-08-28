@@ -205,66 +205,89 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
         continue;
       }
 
-      const isHoliday = subjectVal.toLowerCase().includes('holiday') || subjectVal.toLowerCase().includes('independance');
-
       const sessIdx = sessionCount;
       sessionCount++;
 
-      // Check if subject or faculty cell contains an explicit in-text time range (e.g. 10:00 am - 12:00 pm)
-      const combinedCellText = `${subjectVal} ${facultyVal}`;
-      const inTextTimeMatch = combinedCellText.match(/\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b/i);
-
-      let rawTimeRange = '';
-      if (inTextTimeMatch) {
-        rawTimeRange = inTextTimeMatch[1];
-      } else if (colTimeRanges[c] || colTimeRanges[c - 1]) {
-        rawTimeRange = colTimeRanges[c] || colTimeRanges[c - 1];
-      } else if (dayType === 'saturday') {
-        rawTimeRange = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
-      } else if (dayType === 'sunday') {
-        rawTimeRange = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
-      } else {
-        rawTimeRange = timingMap.weekday[sessIdx] || defaultWeekdayTimings[sessIdx] || '09:00 - 11:00';
+      let defaultRawTime = colTimeRanges[c] || colTimeRanges[c - 1] || '';
+      if (!defaultRawTime) {
+        if (dayType === 'saturday') {
+          defaultRawTime = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
+        } else if (dayType === 'sunday') {
+          defaultRawTime = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
+        } else {
+          defaultRawTime = timingMap.weekday[sessIdx] || defaultWeekdayTimings[sessIdx] || '09:00 - 11:00';
+        }
       }
 
-      const timeParts = rawTimeRange.split(/(?:to|-)/i);
-      const startTimeRaw = timeParts[0] || '09:00';
-      const formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
+      // Helper to process a cell string into one or more ScheduleEvents
+      const processCellText = (rawText: string, defaultTime: string, partnerText: string = '') => {
+        if (!rawText || rawText.length < 2) return;
 
-      let title = subjectVal || facultyVal || 'Class Session';
-      let desc = facultyVal !== title ? facultyVal : '';
+        const isHoliday = rawText.toLowerCase().includes('holiday') || rawText.toLowerCase().includes('independance');
+        const inTextMatch = rawText.match(/\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b/i);
 
-      if (isHoliday && events.some(e => e.title === title && (e.date === parsedDateStr || e.dayOfWeek === parsedDayOfWeek))) {
-        continue;
-      }
+        let eventRawTime = defaultTime;
+        if (inTextMatch) {
+          eventRawTime = inTextMatch[1];
+        }
 
-      if (!isHoliday && events.some(e => e.title.toLowerCase().includes('holiday') && (e.date === parsedDateStr || e.dayOfWeek === parsedDayOfWeek))) {
-        continue;
-      }
+        const timeParts = eventRawTime.split(/(?:to|-)/i);
+        const startTimeRaw = timeParts[0] || '09:00';
+        const formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
 
-      const category = classifyEventCategory(title);
+        let cleanTitle = rawText.replace(/\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi, '').trim();
+        cleanTitle = cleanTitle.replace(/[,;:\-_|]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!cleanTitle) cleanTitle = rawText;
 
-      const event: ScheduleEvent = {
-        id: Math.random().toString(36).substring(2, 9),
-        title,
-        time: formattedTime,
-        reminderMinutesBefore: 5,
-        category,
-        rawTime: rawTimeRange,
+        const category = classifyEventCategory(cleanTitle);
+
+        // Deduplication check
+        const isDuplicate = events.some(e => 
+          (e.title.toLowerCase() === cleanTitle.toLowerCase() || e.rawTime === eventRawTime) &&
+          e.time === formattedTime &&
+          (e.date === parsedDateStr || e.dayOfWeek === parsedDayOfWeek)
+        );
+
+        if (isDuplicate) return;
+
+        const eventItem: ScheduleEvent = {
+          id: Math.random().toString(36).substring(2, 9),
+          title: cleanTitle,
+          time: formattedTime,
+          reminderMinutesBefore: 5,
+          category,
+          rawTime: eventRawTime,
+        };
+
+        if (partnerText && partnerText !== rawText && !/\b\d{1,2}[:.]\d{2}\b/.test(partnerText)) {
+          eventItem.description = partnerText;
+        }
+
+        if (parsedDateStr) {
+          eventItem.date = parsedDateStr;
+          eventItem.dayOfWeek = parsedDayOfWeek;
+        } else {
+          eventItem.dayOfWeek = parsedDayOfWeek;
+        }
+
+        events.push(eventItem);
       };
 
-      if (desc) {
-        event.description = desc;
-      }
+      const subjHasTime = /\b\d{1,2}[:.]\d{2}\b/.test(subjectVal);
+      const facHasTime = /\b\d{1,2}[:.]\d{2}\b/.test(facultyVal);
 
-      if (parsedDateStr) {
-        event.date = parsedDateStr;
-        event.dayOfWeek = parsedDayOfWeek;
+      if (subjHasTime && facHasTime) {
+        // Both subject and faculty cells contain separate class sessions
+        processCellText(subjectVal, defaultRawTime);
+        processCellText(facultyVal, defaultRawTime);
+      } else if (subjHasTime) {
+        processCellText(subjectVal, defaultRawTime, facultyVal);
+      } else if (facHasTime) {
+        processCellText(facultyVal, defaultRawTime, subjectVal);
       } else {
-        event.dayOfWeek = parsedDayOfWeek;
+        // Standard subject + faculty pair
+        processCellText(subjectVal || facultyVal, defaultRawTime, facultyVal !== subjectVal ? facultyVal : '');
       }
-
-      events.push(event);
     }
   }
 

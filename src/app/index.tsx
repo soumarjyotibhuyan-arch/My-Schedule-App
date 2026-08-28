@@ -206,6 +206,7 @@ export default function HomeScreen() {
   const [pendingEvents, setPendingEvents] = useState<ScheduleEvent[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(getTodayDateString());
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
+  const [declutterEnabled, setDeclutterEnabled] = useState(false);
   const rollingDays = getRollingDays();
 
   const handleSelectDate = (dateStr: string | null) => {
@@ -431,7 +432,7 @@ export default function HomeScreen() {
   };
 
   // Filter events for the selected day or one-off
-  const filteredEvents = events.filter(e => {
+  let rawFilteredEvents = events.filter(e => {
     if (selectedTab === 'all') {
       return true; // Show all items for management
     }
@@ -453,6 +454,25 @@ export default function HomeScreen() {
 
     return false;
   }).sort((a, b) => a.time.localeCompare(b.time));
+
+  if (declutterEnabled) {
+    rawFilteredEvents = rawFilteredEvents.filter(e => e.category !== 'Administrative' && e.title.toLowerCase() !== 'blank');
+  }
+
+  const filteredEvents = rawFilteredEvents;
+
+  // TL;DR High-Level Summary Calculations
+  const totalCommits = filteredEvents.length;
+  const topFocusTask = filteredEvents.find(e => e.category === 'Deep Work') || filteredEvents[0];
+  const theOneThing = topFocusTask ? topFocusTask.title : 'No commits scheduled';
+  
+  let totalBufferHours = 0;
+  if (filteredEvents.length >= 2) {
+    const startHour = parseInt(filteredEvents[0].time.split(':')[0], 10);
+    const endHour = parseInt(filteredEvents[filteredEvents.length - 1].time.split(':')[0], 10);
+    const gap = Math.max(0, endHour - startHour - (filteredEvents.length - 1) * 1.5);
+    totalBufferHours = Math.round(gap * 10) / 10;
+  }
 
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768; // Desktop / laptop breakpoint
@@ -562,6 +582,39 @@ export default function HomeScreen() {
                     onSelectDate={handleSelectDate}
                     theme={theme}
                   />
+                </View>
+              )}
+
+              {/* High-Level TL;DR Summary Card */}
+              {events.length > 0 && (
+                <View style={[styles.tldrCard, { backgroundColor: theme.backgroundElement }]}>
+                  <View style={styles.tldrHeader}>
+                    <Text style={[styles.tldrTitle, { color: theme.text }]}>🧠 Schedule TL;DR Summary</Text>
+                    <Pressable
+                      style={[styles.declutterButton, declutterEnabled && styles.declutterButtonActive]}
+                      onPress={() => setDeclutterEnabled(!declutterEnabled)}
+                    >
+                      <Text style={[styles.declutterText, declutterEnabled && { color: '#ffffff' }]}>
+                        {declutterEnabled ? '🧹 De-cluttered' : '👁️ Show All'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.tldrRow}>
+                    <View style={styles.tldrMetric}>
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Commits</Text>
+                      <Text style={[styles.tldrMetricValue, { color: theme.text }]}>{totalCommits}</Text>
+                    </View>
+                    <View style={[styles.tldrMetric, { flex: 2 }]}>
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>The "One Thing"</Text>
+                      <Text style={[styles.tldrMetricValue, { color: '#208AEF' }]} numberOfLines={1}>
+                        {theOneThing}
+                      </Text>
+                    </View>
+                    <View style={styles.tldrMetric}>
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Buffer Time</Text>
+                      <Text style={[styles.tldrMetricValue, { color: theme.text }]}>~{totalBufferHours}h</Text>
+                    </View>
+                  </View>
                 </View>
               )}
 
@@ -1334,6 +1387,59 @@ const styles = StyleSheet.create({
   },
   activePillText: {
     fontWeight: 'bold',
+  },
+  tldrCard: {
+    padding: Spacing.three,
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.15)',
+    marginBottom: Spacing.three,
+  },
+  tldrHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.two,
+  },
+  tldrTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  tldrRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  tldrMetric: {
+    flex: 1,
+    backgroundColor: 'rgba(128, 128, 128, 0.05)',
+    padding: Spacing.two,
+    borderRadius: Spacing.one + 4,
+  },
+  tldrMetricLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  tldrMetricValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  declutterButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.3)',
+  },
+  declutterButtonActive: {
+    backgroundColor: '#208AEF',
+    borderColor: '#208AEF',
+  },
+  declutterText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   resetAppButton: {
     marginTop: Spacing.three,
