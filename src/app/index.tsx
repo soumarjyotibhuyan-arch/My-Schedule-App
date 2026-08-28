@@ -26,6 +26,7 @@ import {
 } from '../utils/notifier';
 import PDFParserWebView from '../components/PDFParserWebView';
 import CalendarPreview from '../components/CalendarPreview';
+import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext } from '../utils/dateUtils';
 import { Colors, Spacing, BottomTabInset, MaxContentWidth } from '../constants/theme';
 import { useColorScheme } from 'react-native';
 
@@ -222,7 +223,18 @@ export default function HomeScreen() {
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
   const [declutterEnabled, setDeclutterEnabled] = useState(false);
   const [filterPastEvents, setFilterPastEvents] = useState(false);
+  const [realTimeCtx, setRealTimeCtx] = useState<RealTimeContext>(getRealTimeContext());
   const rollingDays = getRollingDays();
+
+  // 60-second live real-time tick timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRealTimeCtx(getRealTimeContext());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const bucketed = bucketScheduleEvents(events, realTimeCtx);
 
   const handleSelectDate = (dateStr: string | null) => {
     if (!dateStr) {
@@ -619,11 +631,11 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {/* High-Level TL;DR Summary Card */}
+              {/* High-Level Real-Time TL;DR Summary Card */}
               {events.length > 0 && (
                 <View style={[styles.tldrCard, { backgroundColor: theme.backgroundElement }]}>
                   <View style={styles.tldrHeader}>
-                    <Text style={[styles.tldrTitle, { color: theme.text }]}>🧠 Schedule TL;DR Summary</Text>
+                    <Text style={[styles.tldrTitle, { color: theme.text }]}>⏱️ Real-Time Schedule Summary</Text>
                     <Pressable
                       style={[styles.declutterButton, declutterEnabled && styles.declutterButtonActive]}
                       onPress={() => setDeclutterEnabled(!declutterEnabled)}
@@ -635,18 +647,22 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.tldrRow}>
                     <View style={styles.tldrMetric}>
-                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Commits</Text>
-                      <Text style={[styles.tldrMetricValue, { color: theme.text }]}>{totalCommits}</Text>
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Real Time</Text>
+                      <Text style={[styles.tldrMetricValue, { color: '#208AEF' }]}>{realTimeCtx.currentTimeStr}</Text>
                     </View>
                     <View style={[styles.tldrMetric, { flex: 2 }]}>
-                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>The "One Thing"</Text>
-                      <Text style={[styles.tldrMetricValue, { color: '#208AEF' }]} numberOfLines={1}>
-                        {theOneThing}
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Status / Next Up</Text>
+                      <Text style={[styles.tldrMetricValue, { color: bucketed.ongoingEvent ? '#34C759' : '#FF9500' }]} numberOfLines={1}>
+                        {bucketed.ongoingEvent 
+                          ? `🟢 LIVE: ${bucketed.ongoingEvent.title}`
+                          : (bucketed.nextUpEvent ? `⚡ NEXT: ${bucketed.nextUpEvent.title}` : 'No upcoming classes')}
                       </Text>
                     </View>
                     <View style={styles.tldrMetric}>
-                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Buffer Time</Text>
-                      <Text style={[styles.tldrMetricValue, { color: theme.text }]}>~{totalBufferHours}h</Text>
+                      <Text style={[styles.tldrMetricLabel, { color: theme.textSecondary }]}>Active / Total</Text>
+                      <Text style={[styles.tldrMetricValue, { color: theme.text }]}>
+                        {bucketed.todayEvents.length + bucketed.futureEvents.length} / {events.length}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -780,6 +796,37 @@ export default function HomeScreen() {
                             ) : null}
 
                             <View style={styles.cardFooter}>
+                              {/* Real-time Status Badge */}
+                              {(() => {
+                                const status = getEventRealTimeStatus(event, realTimeCtx);
+                                if (status === 'ongoing') {
+                                  return (
+                                    <View style={[styles.periodBadge, { backgroundColor: '#34C75920', borderColor: '#34C759', borderWidth: 1 }]}>
+                                      <Text style={[styles.periodBadgeText, { color: '#34C759', fontWeight: '700' }]}>🟢 NOW LIVE</Text>
+                                    </View>
+                                  );
+                                }
+                                if (status === 'upcoming_today') {
+                                  return (
+                                    <View style={[styles.periodBadge, { backgroundColor: '#208AEF20' }]}>
+                                      <Text style={[styles.periodBadgeText, { color: '#208AEF', fontWeight: '700' }]}>⚡ TODAY</Text>
+                                    </View>
+                                  );
+                                }
+                                if (status === 'future') {
+                                  return (
+                                    <View style={[styles.periodBadge, { backgroundColor: '#AF52DE20' }]}>
+                                      <Text style={[styles.periodBadgeText, { color: '#AF52DE', fontWeight: '700' }]}>📅 UPCOMING</Text>
+                                    </View>
+                                  );
+                                }
+                                return (
+                                  <View style={[styles.periodBadge, { backgroundColor: '#8E8E9320' }]}>
+                                    <Text style={[styles.periodBadgeText, { color: '#8E8E93' }]}>🧹 PAST</Text>
+                                  </View>
+                                );
+                              })()}
+
                               {/* Time period block tag */}
                               <View style={[styles.periodBadge, { backgroundColor: dotColor + '15' }]}>
                                 <Text style={[styles.periodBadgeText, { color: dotColor }]}>
