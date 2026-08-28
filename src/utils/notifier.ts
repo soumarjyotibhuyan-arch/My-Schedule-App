@@ -93,35 +93,7 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
   try {
     const { hour, minute, offsetDays } = calculateTriggerTime(event.time, event.reminderMinutesBefore);
 
-    // 1. Weekly repeating notification
-    if (event.dayOfWeek !== undefined) {
-      let targetWeekday = getExpoWeekday(event.dayOfWeek);
-
-      // Adjust weekday if reminder offset pushed it to the previous day
-      if (offsetDays < 0) {
-        targetWeekday = targetWeekday - 1;
-        if (targetWeekday < 1) targetWeekday = 7; // Wrap back to Saturday (7) if it was Sunday (1)
-      }
-
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: event.title,
-          body: event.description || `${event.title} starts in ${event.reminderMinutesBefore} minutes at ${event.time}!`,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-          weekday: targetWeekday,
-          hour,
-          minute,
-          repeats: true,
-        },
-      });
-      return id;
-    }
-
-    // 2. One-off date-specific notification
+    // 1. One-off date-specific notification (Prioritized for realistic non-repeating routines)
     if (event.date) {
       const [year, month, day] = event.date.split('-').map(x => parseInt(x, 10));
       const [eventHour, eventMinute] = event.time.split(':').map(x => parseInt(x, 10));
@@ -135,8 +107,8 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
       if (triggerDate.getTime() > Date.now()) {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: event.title,
-            body: event.description || `${event.title} starts in ${event.reminderMinutesBefore} minutes at ${event.time}!`,
+            title: `⏰ Class Reminder: ${event.title}`,
+            body: event.description || `${event.title} starts at ${event.time}${event.venue ? ` (${event.venue})` : ''}`,
             sound: true,
             priority: Notifications.AndroidNotificationPriority.MAX,
           },
@@ -147,13 +119,40 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
         });
         return id;
       }
+      return null;
     }
 
-    return null;
+    // 2. Day-of-week non-repeating fallback (only if no explicit date is provided)
+    if (event.dayOfWeek !== undefined) {
+      let targetWeekday = getExpoWeekday(event.dayOfWeek);
+
+      if (offsetDays < 0) {
+        targetWeekday = targetWeekday - 1;
+        if (targetWeekday < 1) targetWeekday = 7;
+      }
+
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏰ Upcoming Class: ${event.title}`,
+          body: event.description || `${event.title} starts at ${event.time}${event.venue ? ` (${event.venue})` : ''}`,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          weekday: targetWeekday,
+          hour,
+          minute,
+          repeats: false, // Non-repeating as per explicit user directive
+        },
+      });
+      return id;
+    }
   } catch (error) {
-    console.error(`Error scheduling notification for event ${event.title}:`, error);
-    return null;
+    console.error('Error scheduling notification:', error);
   }
+
+  return null;
 }
 
 // Bulk schedule all events
