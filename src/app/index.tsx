@@ -845,52 +845,84 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Import Choice Modal */}
-        {modalVisible && (
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Schedule Imported</Text>
-              <Text style={[styles.modalText, { color: theme.textSecondary }]}>
-                Found {pendingEvents.length} events. How would you like to import them?
-              </Text>
-              <View style={styles.modalButtons}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.modalBtn,
-                    styles.appendBtn,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleAppendConfirm}
-                >
-                  <Text style={styles.modalBtnText}>Append to Current</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.modalBtn,
-                    styles.replaceBtn,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleReplaceConfirm}
-                >
-                  <Text style={styles.modalBtnText}>Replace Current</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.modalBtn,
-                    styles.cancelBtn,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => {
-                    setModalVisible(false);
-                    setLoading(false);
-                  }}
-                >
-                  <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancel</Text>
-                </Pressable>
+        {/* Import Choice & Routine Preview Modal */}
+        {modalVisible && (() => {
+          const pendingDates = Array.from(new Set(pendingEvents.map(e => e.date).filter(Boolean))).sort();
+          const startDateLabel = pendingDates[0] || 'Repeating Agenda';
+          const endDateLabel = pendingDates.length > 1 ? pendingDates[pendingDates.length - 1] : startDateLabel;
+
+          return (
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>🔍 Identified Routine & Dates</Text>
+                
+                <View style={styles.previewMetaBox}>
+                  <Text style={[styles.previewMetaLabel, { color: theme.textSecondary }]}>
+                    📅 Date Range Identified: <Text style={{ color: theme.text, fontWeight: '700' }}>{startDateLabel} → {endDateLabel}</Text>
+                  </Text>
+                  <Text style={[styles.previewMetaLabel, { color: theme.textSecondary }]}>
+                    📚 Classes Extracted: <Text style={{ color: '#208AEF', fontWeight: '700' }}>{pendingEvents.length} Sessions</Text>
+                  </Text>
+                </View>
+
+                <Text style={[styles.previewSubTitle, { color: theme.text }]}>Class Schedule Routine Preview:</Text>
+                
+                <ScrollView style={styles.previewListScroll} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                  {pendingEvents.map((item, idx) => (
+                    <View key={idx} style={styles.previewRowItem}>
+                      <View style={styles.previewRowTimeBadge}>
+                        <Text style={styles.previewRowTimeText}>{item.time}</Text>
+                        <Text style={styles.previewRowDateText}>{item.date || `Day ${item.dayOfWeek}`}</Text>
+                      </View>
+                      <View style={styles.previewRowContent}>
+                        <Text style={[styles.previewRowTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+                        {item.description ? (
+                          <Text style={[styles.previewRowDesc, { color: theme.textSecondary }]} numberOfLines={1}>{item.description}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.modalBtn,
+                      styles.appendBtn,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleAppendConfirm}
+                  >
+                    <Text style={styles.modalBtnText}>Append to Current</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.modalBtn,
+                      styles.replaceBtn,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleReplaceConfirm}
+                  >
+                    <Text style={styles.modalBtnText}>Replace Current</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.modalBtn,
+                      styles.cancelBtn,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => {
+                      setModalVisible(false);
+                      setLoading(false);
+                    }}
+                  >
+                    <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancel</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
       </SafeAreaView>
     </View>
   );
@@ -1425,6 +1457,64 @@ const styles = StyleSheet.create({
   tldrMetricValue: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  previewMetaBox: {
+    backgroundColor: 'rgba(128, 128, 128, 0.08)',
+    padding: Spacing.two,
+    borderRadius: Spacing.one + 4,
+    marginBottom: Spacing.two,
+    gap: 4,
+  },
+  previewMetaLabel: {
+    fontSize: 12,
+  },
+  previewSubTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: Spacing.one,
+  },
+  previewListScroll: {
+    maxHeight: 180,
+    marginBottom: Spacing.two,
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.15)',
+    borderRadius: Spacing.one + 4,
+    padding: Spacing.one,
+  },
+  previewRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.1)',
+    gap: Spacing.two,
+  },
+  previewRowTimeBadge: {
+    backgroundColor: '#208AEF',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    minWidth: 75,
+  },
+  previewRowTimeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  previewRowDateText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 9,
+  },
+  previewRowContent: {
+    flex: 1,
+  },
+  previewRowTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  previewRowDesc: {
+    fontSize: 10,
   },
   declutterButton: {
     paddingVertical: 4,
