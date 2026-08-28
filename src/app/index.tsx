@@ -458,275 +458,280 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Schedule Sync</Text>
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Push reminders to your Noise Smartwatch
-          </Text>
-        </View>
-
-        {/* Permissions Alert Banner */}
-        {!permissionGranted && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.permissionBanner,
-              pressed && styles.pressed,
-            ]}
-            onPress={handleRequestPermission}
-          >
-            <Text style={styles.permissionText}>
-              ⚠️ Alarms Disabled. Tap here to grant permission.
+        <ScrollView
+          style={styles.mainScrollView}
+          contentContainerStyle={styles.mainScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.text }]}>Schedule Sync</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Push reminders to your Noise Smartwatch
             </Text>
-          </Pressable>
-        )}
+          </View>
 
-        <View style={isLargeScreen ? styles.desktopLayout : styles.mobileLayout}>
-          {/* Main Column */}
-          <View style={isLargeScreen ? styles.mainColumn : styles.fullWidthColumn}>
-            {/* Upload Trigger Card */}
-            <View style={[styles.uploadCard, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.uploadLabel, { color: theme.text }]}>
-                Upload Timetable Schedule
+          {/* Permissions Alert Banner */}
+          {!permissionGranted && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.permissionBanner,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleRequestPermission}
+            >
+              <Text style={styles.permissionText}>
+                ⚠️ Alarms Disabled. Tap here to grant permission.
               </Text>
-              <Text style={[styles.uploadDesc, { color: theme.textSecondary }]}>
-                Supports Excel (.xlsx), CSV, and PDF formats
-              </Text>
-              
-              <Pressable
-                style={({ pressed }) => [
-                  styles.uploadButton,
-                  pressed && styles.pressed,
-                ]}
-                onPress={handlePickDocument}
-              >
-                <Text style={styles.uploadButtonText}>📁 Select Timetable File</Text>
-              </Pressable>
-            </View>
+            </Pressable>
+          )}
 
-            {/* Alarm Reminder Settings Card */}
-            <View style={[styles.settingsCard, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.settingsTitle, { color: theme.text }]}>
-                🔔 Alarm Reminder Offset
-              </Text>
-              <Text style={[styles.settingsDesc, { color: theme.textSecondary }]}>
-                Choose when you want to receive alerts before your classes:
-              </Text>
-              <View style={styles.pillsContainer}>
-                {[0, 5, 10, 15, 30].map(offset => (
-                  <Pressable
-                    key={offset}
-                    onPress={() => handleUpdateAllReminderOffsets(offset)}
-                    style={[
-                      styles.pillButton,
-                      defaultReminderOffset === offset && [styles.activePill, { backgroundColor: theme.backgroundSelected }]
-                    ]}
-                  >
-                    <Text
+          <View style={isLargeScreen ? styles.desktopLayout : styles.mobileLayout}>
+            {/* Main Column */}
+            <View style={isLargeScreen ? styles.mainColumn : styles.fullWidthColumn}>
+              {/* Upload Trigger Card */}
+              <View style={[styles.uploadCard, { backgroundColor: theme.backgroundElement }]}>
+                <Text style={[styles.uploadLabel, { color: theme.text }]}>
+                  Upload Timetable Schedule
+                </Text>
+                <Text style={[styles.uploadDesc, { color: theme.textSecondary }]}>
+                  Supports Excel (.xlsx), CSV, and PDF formats
+                </Text>
+                
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.uploadButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handlePickDocument}
+                >
+                  <Text style={styles.uploadButtonText}>📁 Select Timetable File</Text>
+                </Pressable>
+              </View>
+
+              {/* Alarm Reminder Settings Card */}
+              <View style={[styles.settingsCard, { backgroundColor: theme.backgroundElement }]}>
+                <Text style={[styles.settingsTitle, { color: theme.text }]}>
+                  🔔 Alarm Reminder Offset
+                </Text>
+                <Text style={[styles.settingsDesc, { color: theme.textSecondary }]}>
+                  Choose when you want to receive alerts before your classes:
+                </Text>
+                <View style={styles.pillsContainer}>
+                  {[0, 5, 10, 15, 30].map(offset => (
+                    <Pressable
+                      key={offset}
+                      onPress={() => handleUpdateAllReminderOffsets(offset)}
                       style={[
-                        styles.pillText,
-                        { color: defaultReminderOffset === offset ? theme.text : theme.textSecondary },
-                        defaultReminderOffset === offset && styles.activePillText
+                        styles.pillButton,
+                        defaultReminderOffset === offset && [styles.activePill, { backgroundColor: theme.backgroundSelected }]
                       ]}
                     >
-                      {offset === 0 ? 'Event Time' : `${offset}m before`}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        style={[
+                          styles.pillText,
+                          { color: defaultReminderOffset === offset ? theme.text : theme.textSecondary },
+                          defaultReminderOffset === offset && styles.activePillText
+                        ]}
+                      >
+                        {offset === 0 ? 'Event Time' : `${offset}m before`}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.resetAppButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleClearSchedule}
+                >
+                  <Text style={styles.resetAppButtonText}>🔄 Reset Application Alarms & Settings</Text>
+                </Pressable>
               </View>
-              
-              <Pressable
-                style={({ pressed }) => [
-                  styles.resetAppButton,
-                  pressed && styles.pressed,
-                ]}
-                onPress={handleClearSchedule}
-              >
-                <Text style={styles.resetAppButtonText}>🔄 Reset Application Alarms & Settings</Text>
-              </Pressable>
-            </View>
 
-            {/* Mobile Calendar Preview (below uploader) */}
-            {!isLargeScreen && events.length > 0 && (
-              <View style={styles.mobileCalendarContainer}>
-                <CalendarPreview
-                  events={events}
-                  selectedDate={selectedDateStr}
-                  onSelectDate={handleSelectDate}
-                  theme={theme}
-                />
-              </View>
-            )}
+              {/* Mobile Calendar Preview (below uploader) */}
+              {!isLargeScreen && events.length > 0 && (
+                <View style={styles.mobileCalendarContainer}>
+                  <CalendarPreview
+                    events={events}
+                    selectedDate={selectedDateStr}
+                    onSelectDate={handleSelectDate}
+                    theme={theme}
+                  />
+                </View>
+              )}
 
-            {/* Tab Navigator */}
-            <View style={styles.tabContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {rollingDays.map((day, idx) => (
+              {/* Tab Navigator */}
+              <View style={styles.tabContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {rollingDays.map((day, idx) => (
+                    <Pressable
+                      key={day.dateStr}
+                      onPress={() => {
+                        setSelectedTab(idx);
+                        setSelectedDateStr(day.dateStr);
+                      }}
+                      style={[
+                        styles.tabButton,
+                        selectedTab === idx && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.tabButtonText,
+                          { color: selectedTab === idx ? theme.text : theme.textSecondary },
+                          selectedTab === idx && styles.activeTabText,
+                        ]}
+                      >
+                        {day.label}
+                      </Text>
+                    </Pressable>
+                  ))}
                   <Pressable
-                    key={day.dateStr}
                     onPress={() => {
-                      setSelectedTab(idx);
-                      setSelectedDateStr(day.dateStr);
+                      setSelectedTab('all');
+                      setSelectedDateStr(null);
                     }}
                     style={[
                       styles.tabButton,
-                      selectedTab === idx && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
+                      selectedTab === 'all' && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
                     ]}
                   >
                     <Text
                       style={[
                         styles.tabButtonText,
-                        { color: selectedTab === idx ? theme.text : theme.textSecondary },
-                        selectedTab === idx && styles.activeTabText,
+                        { color: selectedTab === 'all' ? theme.text : theme.textSecondary },
+                        selectedTab === 'all' && styles.activeTabText,
                       ]}
                     >
-                      {day.label}
+                      All Items
                     </Text>
                   </Pressable>
-                ))}
-                <Pressable
-                  onPress={() => {
-                    setSelectedTab('all');
-                    setSelectedDateStr(null);
-                  }}
-                  style={[
-                    styles.tabButton,
-                    selectedTab === 'all' && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tabButtonText,
-                      { color: selectedTab === 'all' ? theme.text : theme.textSecondary },
-                      selectedTab === 'all' && styles.activeTabText,
-                    ]}
-                  >
-                    All Items
-                  </Text>
-                </Pressable>
-              </ScrollView>
-            </View>
+                </ScrollView>
+              </View>
 
-            {/* Events Schedule List */}
-            <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
-              {filteredEvents.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                    No reminders scheduled for this day
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.timelineContainer}>
-                  {filteredEvents.map((event, index) => {
-                    const dotColor = getTimelineColor(event.time);
-                    const blockLabel = getTimelineLabel(event.time);
-                    const isLast = index === filteredEvents.length - 1;
-                    const isClickedDate = selectedDateStr && event.date === selectedDateStr;
-                    const hasConflict = hasScheduleConflict(event, events);
-                    
-                    return (
-                      <View key={event.id} style={styles.timelineRow}>
-                        {/* Time Column */}
-                        <View style={styles.timeColumn}>
-                          <Text style={[styles.timeText, { color: theme.text }]}>
-                            {formatTime12h(event.time).split(' ')[0]}
-                          </Text>
-                          <Text style={[styles.ampmText, { color: theme.textSecondary }]}>
-                            {formatTime12h(event.time).split(' ')[1]}
-                          </Text>
-                        </View>
-
-                        {/* Timeline Tracker Column */}
-                        <View style={styles.trackerColumn}>
-                          <View style={[styles.timelineDot, { backgroundColor: dotColor, borderColor: theme.background }]} />
-                          {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.textSecondary + '20' }]} />}
-                        </View>
-
-                        {/* Content Column */}
-                        <View style={[
-                          styles.contentColumn, 
-                          { backgroundColor: theme.backgroundElement },
-                          isClickedDate && { borderWidth: 1.5, borderColor: '#208AEF' }
-                        ]}>
-                          <View style={styles.cardHeader}>
-                            <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
-                              {event.title}
+              {/* Events Schedule List */}
+              <View style={styles.listContainer}>
+                {filteredEvents.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                      No reminders scheduled for this day
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.timelineContainer}>
+                    {filteredEvents.map((event, index) => {
+                      const dotColor = getTimelineColor(event.time);
+                      const blockLabel = getTimelineLabel(event.time);
+                      const isLast = index === filteredEvents.length - 1;
+                      const isClickedDate = selectedDateStr && event.date === selectedDateStr;
+                      const hasConflict = hasScheduleConflict(event, events);
+                      
+                      return (
+                        <View key={event.id} style={styles.timelineRow}>
+                          {/* Time Column */}
+                          <View style={styles.timeColumn}>
+                            <Text style={[styles.timeText, { color: theme.text }]}>
+                              {formatTime12h(event.time).split(' ')[0]}
                             </Text>
-                            <Pressable
-                              style={({ pressed }) => [
-                                styles.cardDeleteBtn,
-                                pressed && styles.pressed,
-                              ]}
-                              onPress={() => handleDeleteEvent(event.id)}
-                            >
-                              <Text style={styles.cardDeleteBtnText}>🗑️</Text>
-                            </Pressable>
+                            <Text style={[styles.ampmText, { color: theme.textSecondary }]}>
+                              {formatTime12h(event.time).split(' ')[1]}
+                            </Text>
                           </View>
 
-                          <Text style={[styles.cardTimeRangeText, { color: theme.textSecondary }]}>
-                            🕒 {event.rawTime || formatTime12h(event.time)}
-                          </Text>
+                          {/* Timeline Tracker Column */}
+                          <View style={styles.trackerColumn}>
+                            <View style={[styles.timelineDot, { backgroundColor: dotColor, borderColor: theme.background }]} />
+                            {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.textSecondary + '20' }]} />}
+                          </View>
 
-                          {event.description ? (
-                            <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>
-                              {event.description}
-                            </Text>
-                          ) : null}
-
-                          <View style={styles.cardFooter}>
-                            {/* Time period block tag */}
-                            <View style={[styles.periodBadge, { backgroundColor: dotColor + '15' }]}>
-                              <Text style={[styles.periodBadgeText, { color: dotColor }]}>
-                                {blockLabel}
+                          {/* Content Column */}
+                          <View style={[
+                            styles.contentColumn, 
+                            { backgroundColor: theme.backgroundElement },
+                            isClickedDate && { borderWidth: 1.5, borderColor: '#208AEF' }
+                          ]}>
+                            <View style={styles.cardHeader}>
+                              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
+                                {event.title}
                               </Text>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.cardDeleteBtn,
+                                  pressed && styles.pressed,
+                                ]}
+                                onPress={() => handleDeleteEvent(event.id)}
+                              >
+                                <Text style={styles.cardDeleteBtnText}>🗑️</Text>
+                              </Pressable>
                             </View>
 
-                            {/* Cognitive category tag */}
-                            {event.category && (
-                              <View style={[styles.periodBadge, { backgroundColor: dotColor + '10' }]}>
+                            <Text style={[styles.cardTimeRangeText, { color: theme.textSecondary }]}>
+                              🕒 {event.rawTime || formatTime12h(event.time)}
+                            </Text>
+
+                            {event.description ? (
+                              <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                                {event.description}
+                              </Text>
+                            ) : null}
+
+                            <View style={styles.cardFooter}>
+                              {/* Time period block tag */}
+                              <View style={[styles.periodBadge, { backgroundColor: dotColor + '15' }]}>
                                 <Text style={[styles.periodBadgeText, { color: dotColor }]}>
-                                  {event.category === 'Deep Work' && '🧠 '}
-                                  {event.category === 'Collaborative' && '🤝 '}
-                                  {event.category === 'Administrative' && '⚙️ '}
-                                  {event.category === 'Wrap-up' && '📊 '}
-                                  {event.category}
+                                  {blockLabel}
                                 </Text>
                               </View>
+
+                              {/* Cognitive category tag */}
+                              {event.category && (
+                                <View style={[styles.periodBadge, { backgroundColor: dotColor + '10' }]}>
+                                  <Text style={[styles.periodBadgeText, { color: dotColor }]}>
+                                    {event.category === 'Deep Work' && '🧠 '}
+                                    {event.category === 'Collaborative' && '🤝 '}
+                                    {event.category === 'Administrative' && '⚙️ '}
+                                    {event.category === 'Wrap-up' && '📊 '}
+                                    {event.category}
+                                  </Text>
+                                </View>
+                              )}
+                              
+                              {/* Reminder offset tag */}
+                              <View style={styles.reminderInfoBadge}>
+                                <Text style={[styles.reminderInfoText, { color: theme.textSecondary }]}>
+                                  🔔 {event.reminderMinutesBefore}m before
+                                </Text>
+                              </View>
+                            </View>
+
+                            {event.date && (
+                              <Text style={[styles.eventDateTag, { color: theme.textSecondary }]}>
+                                📅 {formatFriendlyDate(event.date)}
+                              </Text>
                             )}
                             
-                            {/* Reminder offset tag */}
-                            <View style={styles.reminderInfoBadge}>
-                              <Text style={[styles.reminderInfoText, { color: theme.textSecondary }]}>
-                                🔔 {event.reminderMinutesBefore}m before
-                              </Text>
-                            </View>
+                            {event.date && selectedTab !== 'all' && (
+                              <View style={styles.oneOffBadge}>
+                                <Text style={styles.oneOffBadgeText}>One-off Date</Text>
+                              </View>
+                            )}
+
+                            {/* Overlap Conflict warning */}
+                            {hasConflict && (
+                              <View style={styles.conflictBadge}>
+                                <Text style={styles.conflictBadgeText}>⚠️ Overlap Conflict</Text>
+                              </View>
+                            )}
                           </View>
-
-                          {event.date && (
-                            <Text style={[styles.eventDateTag, { color: theme.textSecondary }]}>
-                              📅 {formatFriendlyDate(event.date)}
-                            </Text>
-                          )}
-                          
-                          {event.date && selectedTab !== 'all' && (
-                            <View style={styles.oneOffBadge}>
-                              <Text style={styles.oneOffBadgeText}>One-off Date</Text>
-                            </View>
-                          )}
-
-                          {/* Overlap Conflict warning */}
-                          {hasConflict && (
-                            <View style={styles.conflictBadge}>
-                              <Text style={styles.conflictBadgeText}>⚠️ Overlap Conflict</Text>
-                            </View>
-                          )}
                         </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-            </ScrollView>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
 
             {/* Bulk Action Controls */}
             {events.length > 0 && (
@@ -773,6 +778,7 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
+      </ScrollView>
 
         {/* Hidden PDF Parser WebView */}
         {pdfBase64 && (
@@ -841,11 +847,17 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
     width: '100%',
-    paddingBottom: BottomTabInset,
+  },
+  mainScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  mainScrollContent: {
+    paddingBottom: 100,
+    paddingHorizontal: Spacing.two,
   },
   header: {
     marginVertical: Spacing.three,
