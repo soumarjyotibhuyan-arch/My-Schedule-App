@@ -214,12 +214,12 @@ export default function HomeScreen() {
 
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
-  const [selectedTab, setSelectedTab] = useState<number | 'all' | 'calendar'>(0); // Index of rollingDays, 'all', or 'calendar'
+  const [selectedTab, setSelectedTab] = useState<number | 'all' | 'calendar'>('all'); // Default to full schedule
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [pendingEvents, setPendingEvents] = useState<ScheduleEvent[]>([]);
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(getTodayDateString());
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
   const [declutterEnabled, setDeclutterEnabled] = useState(false);
   const [filterPastEvents, setFilterPastEvents] = useState(false);
@@ -688,6 +688,26 @@ function formatDateHeader(dateStr?: string): string {
               {/* Tab Navigator */}
               <View style={styles.tabContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <Pressable
+                    onPress={() => {
+                      setSelectedTab('all');
+                      setSelectedDateStr(null);
+                    }}
+                    style={[
+                      styles.tabButton,
+                      selectedTab === 'all' && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabButtonText,
+                        { color: selectedTab === 'all' ? theme.text : theme.textSecondary },
+                        selectedTab === 'all' && styles.activeTabText,
+                      ]}
+                    >
+                      📋 Full Schedule ({events.length})
+                    </Text>
+                  </Pressable>
                   {rollingDays.map((day, idx) => (
                     <Pressable
                       key={day.dateStr}
@@ -711,26 +731,6 @@ function formatDateHeader(dateStr?: string): string {
                       </Text>
                     </Pressable>
                   ))}
-                  <Pressable
-                    onPress={() => {
-                      setSelectedTab('all');
-                      setSelectedDateStr(null);
-                    }}
-                    style={[
-                      styles.tabButton,
-                      selectedTab === 'all' && [styles.activeTab, { backgroundColor: theme.backgroundSelected }],
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tabButtonText,
-                        { color: selectedTab === 'all' ? theme.text : theme.textSecondary },
-                        selectedTab === 'all' && styles.activeTabText,
-                      ]}
-                    >
-                      All Items
-                    </Text>
-                  </Pressable>
                 </ScrollView>
               </View>
 
