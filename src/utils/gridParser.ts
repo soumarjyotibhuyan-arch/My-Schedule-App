@@ -1,5 +1,6 @@
 import { ScheduleEvent } from '../types';
 import { classifyEventCategory } from './categorizer';
+import { behavioralEngineInstance } from './behavioralEngine';
 
 const DAYS_MAP: Record<string, number> = {
   monday: 1, mon: 1,
@@ -304,6 +305,16 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
         cleanTitle = cleanTitle.replace(/\bVenue\s*:[^,\)]+/gi, '');
         cleanTitle = cleanTitle.replace(/[,;:\-_|]/g, ' ').replace(/\s+/g, ' ').trim();
         if (!cleanTitle || cleanTitle.length < 2) cleanTitle = rawText;
+
+        // Apply Behavioral Science Heuristics Engine to infer missing/ambiguous details
+        const inferred = behavioralEngineInstance.inferMissingInformation(cleanTitle, faculty, venue);
+        cleanTitle = inferred.inferredSubject;
+        faculty = inferred.inferredFaculty;
+        venue = inferred.inferredVenue;
+
+        if (cleanTitle && (faculty || venue)) {
+          behavioralEngineInstance.recordAvailability(cleanTitle, faculty, venue);
+        }
 
         const category = classifyEventCategory(cleanTitle);
 
