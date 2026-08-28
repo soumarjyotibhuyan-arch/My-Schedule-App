@@ -727,7 +727,19 @@ export default function HomeScreen() {
                               🕒 {event.rawTime || formatTime12h(event.time)}
                             </Text>
 
-                            {event.description ? (
+                            {event.faculty && (
+                              <Text style={[styles.cardFacultyText, { color: theme.textSecondary }]}>
+                                👤 Instructor: {event.faculty}
+                              </Text>
+                            )}
+
+                            {event.venue && (
+                              <View style={styles.venueBadge}>
+                                <Text style={styles.venueBadgeText}>📍 {event.venue}</Text>
+                              </View>
+                            )}
+
+                            {event.description && event.description !== event.faculty ? (
                               <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>
                                 {event.description}
                               </Text>
@@ -1457,6 +1469,25 @@ const styles = StyleSheet.create({
   tldrMetricValue: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  cardFacultyText: {
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  venueBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(32, 138, 239, 0.12)',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginVertical: 4,
+  },
+  venueBadgeText: {
+    color: '#208AEF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   previewMetaBox: {
     backgroundColor: 'rgba(128, 128, 128, 0.08)',

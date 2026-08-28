@@ -223,6 +223,7 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
       const processCellText = (rawText: string, defaultTime: string, partnerText: string = '') => {
         if (!rawText || rawText.length < 2) return;
 
+        const combinedText = `${rawText} ${partnerText}`.trim();
         const isHoliday = rawText.toLowerCase().includes('holiday') || rawText.toLowerCase().includes('independance');
         const inTextMatch = rawText.match(/\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b/i);
 
@@ -235,9 +236,28 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
         const startTimeRaw = timeParts[0] || '09:00';
         const formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
 
-        let cleanTitle = rawText.replace(/\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi, '').trim();
+        // Extract Venue
+        let venue: string | undefined;
+        const venueMatch = combinedText.match(/\b(?:Venue|Room)\s*[:\-]?\s*([^,\n\)]+)/i);
+        if (venueMatch) {
+          venue = `Venue: ${venueMatch[1].trim()}`;
+        }
+
+        // Extract Faculty / Instructor
+        let faculty: string | undefined;
+        const facultyMatch = combinedText.match(/\b((?:Dr|Prof|Mr|Ms|Mrs)\.?\s+[A-Za-z\s]+?)(?=\s*\(|\s*,|\s*Venue|\s*$)/i);
+        if (facultyMatch) {
+          faculty = facultyMatch[1].trim();
+        } else if (partnerText && !/\b\d{1,2}[:.]\d{2}\b/.test(partnerText)) {
+          faculty = partnerText.replace(/\bVenue\s*:.*$/i, '').trim();
+        }
+
+        // Clean Title
+        let cleanTitle = rawText;
+        cleanTitle = cleanTitle.replace(/\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi, '');
+        cleanTitle = cleanTitle.replace(/\bVenue\s*:[^,\)]+/gi, '');
         cleanTitle = cleanTitle.replace(/[,;:\-_|]/g, ' ').replace(/\s+/g, ' ').trim();
-        if (!cleanTitle) cleanTitle = rawText;
+        if (!cleanTitle || cleanTitle.length < 2) cleanTitle = rawText;
 
         const category = classifyEventCategory(cleanTitle);
 
@@ -257,6 +277,8 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
           reminderMinutesBefore: 5,
           category,
           rawTime: eventRawTime,
+          venue: venue || (partnerText.toLowerCase().includes('venue') ? partnerText : undefined),
+          faculty: faculty || undefined,
         };
 
         if (partnerText && partnerText !== rawText && !/\b\d{1,2}[:.]\d{2}\b/.test(partnerText)) {
@@ -290,6 +312,15 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
       }
     }
   }
+
+  // Chronological Sorting Logic: Primary by Date, Secondary by Time
+  events.sort((a, b) => {
+    if (a.date && b.date) {
+      const dateDiff = a.date.localeCompare(b.date);
+      if (dateDiff !== 0) return dateDiff;
+    }
+    return a.time.localeCompare(b.time);
+  });
 
   return events.length > 0 ? events : null;
 }
