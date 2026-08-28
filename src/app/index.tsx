@@ -477,29 +477,46 @@ export default function HomeScreen() {
     }
   };
 
-  // Filter events for the selected day or one-off
+function formatDateHeader(dateStr?: string): string {
+  if (!dateStr) return 'General / Weekly Recurring';
+  const [year, month, day] = dateStr.split('-').map(x => parseInt(x, 10));
+  const d = new Date(year, month - 1, day);
+  const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
+  const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month - 1];
+  return `${dayName}, ${day} ${monthName} ${year}`;
+}
+
+  // Filter and sort events for full schedule up-to-date presentation (Primary: Date YYYY-MM-DD, Secondary: Time HH:MM)
   let rawFilteredEvents = events.filter(e => {
-    if (selectedTab === 'all') {
-      return true; // Show all items for management
+    if (filterPastEvents && e.date && isPastDate(e.date, realTimeCtx.todayStr)) {
+      return false; // Skip past dates if filter option is enabled
     }
-    
-    // We filter by the selectedDateStr
+
+    if (selectedTab === 'all') {
+      return true; // Show all items in full up-to-date schedule
+    }
+
     if (!selectedDateStr) return false;
-    
-    // Get weekday of the selectedDateStr (1 = Mon, 7 = Sun)
+
+    // 1. Match exact date if event has an explicit date
+    if (e.date) {
+      return e.date === selectedDateStr;
+    }
+
+    // 2. Otherwise fallback to weekday matching
     const [year, month, day] = selectedDateStr.split('-').map(x => parseInt(x, 10));
     const d = new Date(year, month - 1, day);
     let targetDayOfWeek = d.getDay();
     targetDayOfWeek = targetDayOfWeek === 0 ? 7 : targetDayOfWeek;
 
-    // Show if:
-    // 1. Repeating event matches the weekday
-    if (e.dayOfWeek === targetDayOfWeek) return true;
-    // 2. One-off event matches the exact date
-    if (e.date === selectedDateStr) return true;
-
-    return false;
-  }).sort((a, b) => a.time.localeCompare(b.time));
+    return e.dayOfWeek === targetDayOfWeek;
+  }).sort((a, b) => {
+    const dateA = a.date || '9999-99-99';
+    const dateB = b.date || '9999-99-99';
+    const dateCmp = dateA.localeCompare(dateB);
+    if (dateCmp !== 0) return dateCmp;
+    return a.time.localeCompare(b.time);
+  });
 
   if (declutterEnabled) {
     rawFilteredEvents = rawFilteredEvents.filter(e => e.category !== 'Administrative' && e.title.toLowerCase() !== 'blank');
@@ -727,156 +744,174 @@ export default function HomeScreen() {
                   </View>
                 ) : (
                   <View style={styles.timelineContainer}>
-                    {filteredEvents.map((event, index) => {
-                      const dotColor = getTimelineColor(event.time);
-                      const blockLabel = getTimelineLabel(event.time);
-                      const isLast = index === filteredEvents.length - 1;
-                      const isClickedDate = selectedDateStr && event.date === selectedDateStr;
-                      const hasConflict = hasScheduleConflict(event, events);
-                      
-                      return (
-                        <View key={event.id} style={styles.timelineRow}>
-                          {/* Time Column */}
-                          <View style={styles.timeColumn}>
-                            <Text style={[styles.timeText, { color: theme.text }]}>
-                              {formatTime12h(event.time).split(' ')[0]}
-                            </Text>
-                            <Text style={[styles.ampmText, { color: theme.textSecondary }]}>
-                              {formatTime12h(event.time).split(' ')[1]}
-                            </Text>
-                          </View>
+                    {(() => {
+                      let lastDateHeader = '';
+                      return filteredEvents.map((event, index) => {
+                        const dotColor = getTimelineColor(event.time);
+                        const blockLabel = getTimelineLabel(event.time);
+                        const isLast = index === filteredEvents.length - 1;
+                        const isClickedDate = selectedDateStr && event.date === selectedDateStr;
+                        const hasConflict = hasScheduleConflict(event, events);
 
-                          {/* Timeline Tracker Column */}
-                          <View style={styles.trackerColumn}>
-                            <View style={[styles.timelineDot, { backgroundColor: dotColor, borderColor: theme.background }]} />
-                            {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.textSecondary + '20' }]} />}
-                          </View>
+                        const dateHeaderStr = formatDateHeader(event.date);
+                        const renderDateHeader = selectedTab === 'all' && dateHeaderStr !== lastDateHeader;
+                        if (renderDateHeader) {
+                          lastDateHeader = dateHeaderStr;
+                        }
 
-                          {/* Content Column */}
-                          <View style={[
-                            styles.contentColumn, 
-                            { backgroundColor: theme.backgroundElement },
-                            isClickedDate && { borderWidth: 1.5, borderColor: '#208AEF' }
-                          ]}>
-                            <View style={styles.cardHeader}>
-                              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
-                                {event.title}
-                              </Text>
-                              <Pressable
-                                style={({ pressed }) => [
-                                  styles.cardDeleteBtn,
-                                  pressed && styles.pressed,
-                                ]}
-                                onPress={() => handleDeleteEvent(event.id)}
-                              >
-                                <Text style={styles.cardDeleteBtnText}>🗑️</Text>
-                              </Pressable>
-                            </View>
-
-                            <Text style={[styles.cardTimeRangeText, { color: theme.textSecondary }]}>
-                              🕒 {event.rawTime || formatTime12h(event.time)}
-                            </Text>
-
-                            {event.faculty && (
-                              <Text style={[styles.cardFacultyText, { color: theme.textSecondary }]}>
-                                👤 Instructor: {event.faculty}
-                              </Text>
-                            )}
-
-                            {event.venue && (
-                              <View style={styles.venueBadge}>
-                                <Text style={styles.venueBadgeText}>📍 {event.venue}</Text>
+                        return (
+                          <React.Fragment key={event.id}>
+                            {renderDateHeader && (
+                              <View style={[styles.dateHeaderBanner, { backgroundColor: theme.backgroundSelected + '15', borderColor: theme.backgroundSelected + '40' }]}>
+                                <Text style={[styles.dateHeaderBannerText, { color: theme.text }]}>
+                                  📅 {dateHeaderStr}
+                                </Text>
                               </View>
                             )}
-
-                            {event.description && event.description !== event.faculty ? (
-                              <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>
-                                {event.description}
-                              </Text>
-                            ) : null}
-
-                            <View style={styles.cardFooter}>
-                              {/* Real-time Status Badge */}
-                              {(() => {
-                                const status = getEventRealTimeStatus(event, realTimeCtx);
-                                if (status === 'ongoing') {
-                                  return (
-                                    <View style={[styles.periodBadge, { backgroundColor: '#34C75920', borderColor: '#34C759', borderWidth: 1 }]}>
-                                      <Text style={[styles.periodBadgeText, { color: '#34C759', fontWeight: '700' }]}>🟢 NOW LIVE</Text>
-                                    </View>
-                                  );
-                                }
-                                if (status === 'upcoming_today') {
-                                  return (
-                                    <View style={[styles.periodBadge, { backgroundColor: '#208AEF20' }]}>
-                                      <Text style={[styles.periodBadgeText, { color: '#208AEF', fontWeight: '700' }]}>⚡ TODAY</Text>
-                                    </View>
-                                  );
-                                }
-                                if (status === 'future') {
-                                  return (
-                                    <View style={[styles.periodBadge, { backgroundColor: '#AF52DE20' }]}>
-                                      <Text style={[styles.periodBadgeText, { color: '#AF52DE', fontWeight: '700' }]}>📅 UPCOMING</Text>
-                                    </View>
-                                  );
-                                }
-                                return (
-                                  <View style={[styles.periodBadge, { backgroundColor: '#8E8E9320' }]}>
-                                    <Text style={[styles.periodBadgeText, { color: '#8E8E93' }]}>🧹 PAST</Text>
-                                  </View>
-                                );
-                              })()}
-
-                              {/* Time period block tag */}
-                              <View style={[styles.periodBadge, { backgroundColor: dotColor + '15' }]}>
-                                <Text style={[styles.periodBadgeText, { color: dotColor }]}>
-                                  {blockLabel}
+                            <View style={styles.timelineRow}>
+                              {/* Time Column */}
+                              <View style={styles.timeColumn}>
+                                <Text style={[styles.timeText, { color: theme.text }]}>
+                                  {formatTime12h(event.time).split(' ')[0]}
+                                </Text>
+                                <Text style={[styles.ampmText, { color: theme.textSecondary }]}>
+                                  {formatTime12h(event.time).split(' ')[1]}
                                 </Text>
                               </View>
 
-                              {/* Cognitive category tag */}
-                              {event.category && (
-                                <View style={[styles.periodBadge, { backgroundColor: dotColor + '10' }]}>
-                                  <Text style={[styles.periodBadgeText, { color: dotColor }]}>
-                                    {event.category === 'Deep Work' && '🧠 '}
-                                    {event.category === 'Collaborative' && '🤝 '}
-                                    {event.category === 'Administrative' && '⚙️ '}
-                                    {event.category === 'Wrap-up' && '📊 '}
-                                    {event.category}
+                              {/* Timeline Tracker Column */}
+                              <View style={styles.trackerColumn}>
+                                <View style={[styles.timelineDot, { backgroundColor: dotColor, borderColor: theme.background }]} />
+                                {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.textSecondary + '20' }]} />}
+                              </View>
+
+                              {/* Content Column */}
+                              <View style={[
+                                styles.contentColumn, 
+                                { backgroundColor: theme.backgroundElement },
+                                isClickedDate && { borderWidth: 1.5, borderColor: '#208AEF' }
+                              ]}>
+                                <View style={styles.cardHeader}>
+                                  <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
+                                    {event.title}
                                   </Text>
+                                  <Pressable
+                                    style={({ pressed }) => [
+                                      styles.cardDeleteBtn,
+                                      pressed && styles.pressed,
+                                    ]}
+                                    onPress={() => handleDeleteEvent(event.id)}
+                                  >
+                                    <Text style={styles.cardDeleteBtnText}>🗑️</Text>
+                                  </Pressable>
                                 </View>
-                              )}
-                              
-                              {/* Reminder offset tag */}
-                              <View style={styles.reminderInfoBadge}>
-                                <Text style={[styles.reminderInfoText, { color: theme.textSecondary }]}>
-                                  🔔 {event.reminderMinutesBefore}m before
+
+                                <Text style={[styles.cardTimeRangeText, { color: theme.textSecondary }]}>
+                                  🕒 {event.rawTime || formatTime12h(event.time)}
                                 </Text>
+
+                                {event.faculty && (
+                                  <Text style={[styles.cardFacultyText, { color: theme.textSecondary }]}>
+                                    👤 Instructor: {event.faculty}
+                                  </Text>
+                                )}
+
+                                {event.venue && (
+                                  <View style={styles.venueBadge}>
+                                    <Text style={styles.venueBadgeText}>📍 {event.venue}</Text>
+                                  </View>
+                                )}
+
+                                {event.description && event.description !== event.faculty ? (
+                                  <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                                    {event.description}
+                                  </Text>
+                                ) : null}
+
+                                <View style={styles.cardFooter}>
+                                  {/* Real-time Status Badge */}
+                                  {(() => {
+                                    const status = getEventRealTimeStatus(event, realTimeCtx);
+                                    if (status === 'ongoing') {
+                                      return (
+                                        <View style={[styles.periodBadge, { backgroundColor: '#34C75920', borderColor: '#34C759', borderWidth: 1 }]}>
+                                          <Text style={[styles.periodBadgeText, { color: '#34C759', fontWeight: '700' }]}>🟢 NOW LIVE</Text>
+                                        </View>
+                                      );
+                                    }
+                                    if (status === 'upcoming_today') {
+                                      return (
+                                        <View style={[styles.periodBadge, { backgroundColor: '#208AEF20' }]}>
+                                          <Text style={[styles.periodBadgeText, { color: '#208AEF', fontWeight: '700' }]}>⚡ TODAY</Text>
+                                        </View>
+                                      );
+                                    }
+                                    if (status === 'future') {
+                                      return (
+                                        <View style={[styles.periodBadge, { backgroundColor: '#AF52DE20' }]}>
+                                          <Text style={[styles.periodBadgeText, { color: '#AF52DE', fontWeight: '700' }]}>📅 UPCOMING</Text>
+                                        </View>
+                                      );
+                                    }
+                                    return (
+                                      <View style={[styles.periodBadge, { backgroundColor: '#8E8E9320' }]}>
+                                        <Text style={[styles.periodBadgeText, { color: '#8E8E93' }]}>🧹 PAST</Text>
+                                      </View>
+                                    );
+                                  })()}
+
+                                  {/* Time period block tag */}
+                                  <View style={[styles.periodBadge, { backgroundColor: dotColor + '15' }]}>
+                                    <Text style={[styles.periodBadgeText, { color: dotColor }]}>
+                                      {blockLabel}
+                                    </Text>
+                                  </View>
+
+                                  {/* Cognitive category tag */}
+                                  {event.category && (
+                                    <View style={[styles.periodBadge, { backgroundColor: dotColor + '10' }]}>
+                                      <Text style={[styles.periodBadgeText, { color: dotColor }]}>
+                                        {event.category === 'Deep Work' && '🧠 '}
+                                        {event.category === 'Collaborative' && '🤝 '}
+                                        {event.category === 'Administrative' && '⚙️ '}
+                                        {event.category === 'Wrap-up' && '📊 '}
+                                        {event.category}
+                                      </Text>
+                                    </View>
+                                  )}
+                                  
+                                  {/* Reminder offset tag */}
+                                  <View style={styles.reminderInfoBadge}>
+                                    <Text style={[styles.reminderInfoText, { color: theme.textSecondary }]}>
+                                      🔔 {event.reminderMinutesBefore}m before
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                {event.date && (
+                                  <Text style={[styles.eventDateTag, { color: theme.textSecondary }]}>
+                                    📅 {formatFriendlyDate(event.date)}
+                                  </Text>
+                                )}
+                                
+                                {event.date && selectedTab !== 'all' && (
+                                  <View style={styles.oneOffBadge}>
+                                    <Text style={styles.oneOffBadgeText}>One-off Date</Text>
+                                  </View>
+                                )}
+
+                                {/* Overlap Conflict warning */}
+                                {hasConflict && (
+                                  <View style={styles.conflictBadge}>
+                                    <Text style={styles.conflictBadgeText}>⚠️ Overlap Conflict</Text>
+                                  </View>
+                                )}
                               </View>
                             </View>
-
-                            {event.date && (
-                              <Text style={[styles.eventDateTag, { color: theme.textSecondary }]}>
-                                📅 {formatFriendlyDate(event.date)}
-                              </Text>
-                            )}
-                            
-                            {event.date && selectedTab !== 'all' && (
-                              <View style={styles.oneOffBadge}>
-                                <Text style={styles.oneOffBadgeText}>One-off Date</Text>
-                              </View>
-                            )}
-
-                            {/* Overlap Conflict warning */}
-                            {hasConflict && (
-                              <View style={styles.conflictBadge}>
-                                <Text style={styles.conflictBadgeText}>⚠️ Overlap Conflict</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
+                          </React.Fragment>
+                        );
+                      });
+                    })()}
                   </View>
                 )}
               </View>
@@ -1482,6 +1517,19 @@ const styles = StyleSheet.create({
   },
   mobileCalendarContainer: {
     marginBottom: Spacing.three,
+  },
+  dateHeaderBanner: {
+    paddingVertical: Spacing.one + 2,
+    paddingHorizontal: Spacing.two,
+    borderRadius: Spacing.one + 2,
+    borderWidth: 1,
+    marginTop: Spacing.two,
+    marginBottom: Spacing.one,
+  },
+  dateHeaderBannerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   infoCard: {
     padding: Spacing.three,
