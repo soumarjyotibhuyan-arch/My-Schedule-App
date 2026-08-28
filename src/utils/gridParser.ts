@@ -74,6 +74,31 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
     return null; 
   }
 
+  // Extract cohort year from title rows (default to 2026)
+  let cohortYear = '2026';
+  for (let r = 0; r <= headerRowIndex; r++) {
+    const rowStr = (rows[r] || []).join(' ');
+    const yearMatch = rowStr.match(/\b(20\d{2})\b/);
+    if (yearMatch) {
+      cohortYear = yearMatch[1];
+      break;
+    }
+  }
+
+  // Check row directly above header for column time ranges (e.g. 09.00 AM to 11.00 AM)
+  const colTimeRanges: Record<number, string> = {};
+  if (headerRowIndex > 0) {
+    for (let r = Math.max(0, headerRowIndex - 2); r < headerRowIndex; r++) {
+      const timeRow = rows[r] || [];
+      for (let c = 0; c < timeRow.length; c++) {
+        const val = String(timeRow[c] || '').trim();
+        if (/\b\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?\b/i.test(val)) {
+          colTimeRanges[c] = val;
+        }
+      }
+    }
+  }
+
   const timingMap: Record<string, string[]> = {
     saturday: [],
     sunday: [],
@@ -149,7 +174,11 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
       parsedDateStr = dateVal;
     } else {
-      const ts = Date.parse(dateVal.replace(/-/g, ' '));
+      let cleanDate = dateVal.replace(/[\/\.]/g, ' ').trim();
+      if (!/\b20\d{2}\b/.test(cleanDate)) {
+        cleanDate += ` ${cohortYear}`;
+      }
+      const ts = Date.parse(cleanDate);
       if (!isNaN(ts)) {
         const d = new Date(ts);
         const yyyy = d.getFullYear();
@@ -171,13 +200,15 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
       const sessIdx = sessionCount;
       sessionCount++;
 
-      let rawTimeRange = '';
-      if (dayType === 'saturday') {
-        rawTimeRange = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
-      } else if (dayType === 'sunday') {
-        rawTimeRange = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
-      } else {
-        rawTimeRange = timingMap.weekday[sessIdx] || '09:00 - 11:00';
+      let rawTimeRange = colTimeRanges[c] || colTimeRanges[c - 1] || '';
+      if (!rawTimeRange) {
+        if (dayType === 'saturday') {
+          rawTimeRange = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
+        } else if (dayType === 'sunday') {
+          rawTimeRange = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
+        } else {
+          rawTimeRange = timingMap.weekday[sessIdx] || '09:00 - 11:00';
+        }
       }
 
       const timeParts = rawTimeRange.split(/(?:to|-)/i);
