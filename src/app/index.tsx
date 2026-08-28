@@ -221,7 +221,7 @@ export default function HomeScreen() {
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(getTodayDateString());
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
   const [declutterEnabled, setDeclutterEnabled] = useState(false);
-  const [filterPastEvents, setFilterPastEvents] = useState(true);
+  const [filterPastEvents, setFilterPastEvents] = useState(false);
   const rollingDays = getRollingDays();
 
   const handleSelectDate = (dateStr: string | null) => {
