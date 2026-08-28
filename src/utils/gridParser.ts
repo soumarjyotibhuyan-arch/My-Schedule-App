@@ -35,6 +35,69 @@ function parseTimeTo24h(timeStr: string): string | null {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
+const MONTH_MAP: Record<string, number> = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12
+};
+
+function parseStructuredDate(rawStr: string, fallbackYear: string = '2026'): string | undefined {
+  const str = rawStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+
+  // Check for DD-MMM-YY e.g. 19-Sep-26 or 19-Sep-2026
+  const dashMatch = str.match(/^(\d{1,2})[-/\.]([A-Za-z]{3,9})[-/\.](\d{2,4})$/);
+  if (dashMatch) {
+    const day = parseInt(dashMatch[1], 10);
+    const mStr = dashMatch[2].toLowerCase();
+    let yr = dashMatch[3];
+    if (yr.length === 2) yr = `20${yr}`;
+    const month = MONTH_MAP[mStr];
+    if (month && day >= 1 && day <= 31) {
+      return `${yr}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  // Check for DD Month YYYY or DD Month e.g. "13 July" or "11 July 2026"
+  const spaceMatch = str.match(/^(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{4}))?$/);
+  if (spaceMatch) {
+    const day = parseInt(spaceMatch[1], 10);
+    const mStr = spaceMatch[2].toLowerCase();
+    const yr = spaceMatch[3] || fallbackYear;
+    const month = MONTH_MAP[mStr];
+    if (month && day >= 1 && day <= 31) {
+      return `${yr}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  // Fallback to JS Date.parse
+  let cleanDate = str.replace(/[\/\.]/g, ' ').trim();
+  if (!/\b20\d{2}\b/.test(cleanDate)) {
+    cleanDate += ` ${fallbackYear}`;
+  }
+  const ts = Date.parse(cleanDate);
+  if (!isNaN(ts)) {
+    const d = new Date(ts);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return undefined;
+}
+
 export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
   let headerRowIndex = -1;
   let dateColIndex = -1;
@@ -168,25 +231,8 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
     const isSunday = cleanedDay.includes('sun');
     const dayType = isSaturday ? 'saturday' : (isSunday ? 'sunday' : 'weekday');
 
-    let parsedDateStr: string | undefined;
-    let parsedDayOfWeek: number = DAYS_MAP[cleanedDay];
-    
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
-      parsedDateStr = dateVal;
-    } else {
-      let cleanDate = dateVal.replace(/[\/\.]/g, ' ').trim();
-      if (!/\b20\d{2}\b/.test(cleanDate)) {
-        cleanDate += ` ${cohortYear}`;
-      }
-      const ts = Date.parse(cleanDate);
-      if (!isNaN(ts)) {
-        const d = new Date(ts);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        parsedDateStr = `${yyyy}-${mm}-${dd}`;
-      }
-    }
+    const parsedDateStr = parseStructuredDate(dateVal, cohortYear);
+    const parsedDayOfWeek: number = DAYS_MAP[cleanedDay];
 
     const defaultWeekdayTimings = ['9.00 am to 11.00 am', '11.00 am to 01.00 pm', '2:00 pm to 4:00 pm'];
     const defaultSatTimings = ['9.00 am to 11.00 am', '11.00 am to 01.00 pm', '2:00 pm to 4:00 pm'];

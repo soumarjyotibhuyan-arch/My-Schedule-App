@@ -92,6 +92,20 @@ function formatFriendlyDate(dateStr: string): string {
   }
 }
 
+function isPastDate(eventDateStr: string | undefined, todayStr: string): boolean {
+  if (!eventDateStr || !todayStr) return false;
+  const [eYear, eMonth, eDay] = eventDateStr.split('-').map(x => parseInt(x, 10));
+  const [tYear, tMonth, tDay] = todayStr.split('-').map(x => parseInt(x, 10));
+
+  if (eYear < tYear) return true;
+  if (eYear > tYear) return false;
+
+  if (eMonth < tMonth) return true;
+  if (eMonth > tMonth) return false;
+
+  return eDay < tDay;
+}
+
 function getTodayDateString(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -239,8 +253,8 @@ export default function HomeScreen() {
     const loadInitialData = async () => {
       const savedEvents = await getEvents();
       const todayStr = getTodayDateString();
-      // Real-time auto-prune past dated events on application startup
-      const activeEvents = savedEvents.filter((e: ScheduleEvent) => !e.date || e.date >= todayStr);
+      // Real-time auto-prune past dated events on application startup using year, month, and day
+      const activeEvents = savedEvents.filter((e: ScheduleEvent) => !e.date || !isPastDate(e.date, todayStr));
       setEvents(activeEvents);
       if (activeEvents.length !== savedEvents.length) {
         await saveEvents(activeEvents);
@@ -353,7 +367,7 @@ export default function HomeScreen() {
   const handleReplaceConfirm = async () => {
     const todayStr = getTodayDateString();
     const eventsToImport = filterPastEvents 
-      ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+      ? pendingEvents.filter(e => !e.date || !isPastDate(e.date, todayStr))
       : pendingEvents;
     const prunedCount = pendingEvents.length - eventsToImport.length;
 
@@ -376,7 +390,7 @@ export default function HomeScreen() {
   const handleAppendConfirm = async () => {
     const todayStr = getTodayDateString();
     const eventsToImport = filterPastEvents 
-      ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+      ? pendingEvents.filter(e => !e.date || !isPastDate(e.date, todayStr))
       : pendingEvents;
     const prunedCount = pendingEvents.length - eventsToImport.length;
 
@@ -879,7 +893,7 @@ export default function HomeScreen() {
         {modalVisible && (() => {
           const todayStr = getTodayDateString();
           const activePendingEvents = filterPastEvents 
-            ? pendingEvents.filter(e => !e.date || e.date >= todayStr)
+            ? pendingEvents.filter(e => !e.date || !isPastDate(e.date, todayStr))
             : pendingEvents;
           const pastEventsCount = pendingEvents.length - activePendingEvents.length;
 
