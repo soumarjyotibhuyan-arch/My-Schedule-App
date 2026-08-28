@@ -347,6 +347,8 @@ export default function HomeScreen() {
     const updated = [...pendingEvents];
     setEvents(updated);
     await saveEvents(updated);
+    setSelectedTab('all');
+    setSelectedDateStr(null);
     setModalVisible(false);
     
     if (permissionGranted) {
@@ -362,6 +364,8 @@ export default function HomeScreen() {
     const updated = [...events, ...pendingEvents];
     setEvents(updated);
     await saveEvents(updated);
+    setSelectedTab('all');
+    setSelectedDateStr(null);
     setModalVisible(false);
 
     if (permissionGranted) {

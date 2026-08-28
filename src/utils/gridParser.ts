@@ -220,6 +220,7 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
 
       if (parsedDateStr) {
         event.date = parsedDateStr;
+        event.dayOfWeek = parsedDayOfWeek;
       } else {
         event.dayOfWeek = parsedDayOfWeek;
       }
