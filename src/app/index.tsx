@@ -252,13 +252,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadInitialData = async () => {
       const savedEvents = await getEvents();
-      const todayStr = getTodayDateString();
-      // Real-time auto-prune past dated events on application startup using year, month, and day
-      const activeEvents = savedEvents.filter((e: ScheduleEvent) => !e.date || !isPastDate(e.date, todayStr));
-      setEvents(activeEvents);
-      if (activeEvents.length !== savedEvents.length) {
-        await saveEvents(activeEvents);
-      }
+      setEvents(savedEvents);
 
       const offset = await getDefaultReminderOffset();
       setDefaultReminderOffset(offset);
@@ -266,8 +260,8 @@ export default function HomeScreen() {
       const status = await requestNotificationPermissions();
       setPermissionGranted(status);
 
-      if (status && activeEvents.length > 0) {
-        await scheduleAllEvents(activeEvents);
+      if (status && savedEvents.length > 0) {
+        await scheduleAllEvents(savedEvents);
       }
     };
 
@@ -378,11 +372,15 @@ export default function HomeScreen() {
     setSelectedDateStr(null);
     setModalVisible(false);
     
+    const summaryText = prunedCount > 0 
+      ? `Replaced schedule with ${eventsToImport.length} active classes (${prunedCount} past events omitted).`
+      : `Successfully loaded all ${eventsToImport.length} scheduled classes across all dates!`;
+
     if (permissionGranted) {
       const count = await scheduleAllEvents(updated);
-      showAlert('Sync Successful', `Replaced schedule with ${eventsToImport.length} active classes (${prunedCount} past events auto-deleted) and set ${count} alarms.`);
+      showAlert('Sync Successful', `${summaryText} Set ${count} alarms.`);
     } else {
-      showAlert('Import Completed', `Imported ${eventsToImport.length} active classes successfully (${prunedCount} past events deleted).`);
+      showAlert('Import Completed', summaryText);
     }
     setLoading(false);
   };
@@ -401,11 +399,15 @@ export default function HomeScreen() {
     setSelectedDateStr(null);
     setModalVisible(false);
 
+    const summaryText = prunedCount > 0 
+      ? `Updated schedule with ${eventsToImport.length} active classes (${prunedCount} past events omitted).`
+      : `Successfully added all ${eventsToImport.length} scheduled classes across all dates!`;
+
     if (permissionGranted) {
       const count = await scheduleAllEvents(updated);
-      showAlert('Sync Successful', `Updated schedule with ${eventsToImport.length} active classes (${prunedCount} past events auto-deleted) and set ${count} alarms.`);
+      showAlert('Sync Successful', `${summaryText} Set ${count} alarms.`);
     } else {
-      showAlert('Import Completed', `Imported ${eventsToImport.length} active classes successfully (${prunedCount} past events deleted).`);
+      showAlert('Import Completed', summaryText);
     }
     setLoading(false);
   };
