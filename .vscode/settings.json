@@ -1,0 +1,4 @@
+{
+    "compilets.autoStart": true,
+    "perl-lsp.aiCompletion.enabled": true
+}
