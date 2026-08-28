@@ -188,6 +188,10 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
       }
     }
 
+    const defaultWeekdayTimings = ['9.00 am to 11.00 am', '11.00 am to 01.00 pm', '2:00 pm to 4:00 pm'];
+    const defaultSatTimings = ['9.00 am to 11.00 am', '11.00 am to 01.00 pm', '2:00 pm to 4:00 pm'];
+    const defaultSunTimings = ['10:30 am - 12:15 pm', '12:15 pm - 02:00 pm', '02:45 pm - 4:30 pm'];
+
     let sessionCount = 0;
     for (let c = Math.max(dateColIndex, dayColIndex) + 1; c < row.length; c += 2) {
       if (c >= row.length) break;
@@ -195,36 +199,40 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
       const subjectVal = String(row[c] || '').trim();
       const facultyVal = String(row[c + 1] || '').trim();
 
+      // Skip completely empty session slots
+      if (!subjectVal && !facultyVal) {
+        sessionCount++;
+        continue;
+      }
+
       const isHoliday = subjectVal.toLowerCase().includes('holiday') || subjectVal.toLowerCase().includes('independance');
 
       const sessIdx = sessionCount;
       sessionCount++;
 
-      let rawTimeRange = colTimeRanges[c] || colTimeRanges[c - 1] || '';
-      if (!rawTimeRange) {
-        if (dayType === 'saturday') {
-          rawTimeRange = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
-        } else if (dayType === 'sunday') {
-          rawTimeRange = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
-        } else {
-          rawTimeRange = timingMap.weekday[sessIdx] || '09:00 - 11:00';
-        }
+      // Check if subject or faculty cell contains an explicit in-text time range (e.g. 10:00 am - 12:00 pm)
+      const combinedCellText = `${subjectVal} ${facultyVal}`;
+      const inTextTimeMatch = combinedCellText.match(/\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b/i);
+
+      let rawTimeRange = '';
+      if (inTextTimeMatch) {
+        rawTimeRange = inTextTimeMatch[1];
+      } else if (colTimeRanges[c] || colTimeRanges[c - 1]) {
+        rawTimeRange = colTimeRanges[c] || colTimeRanges[c - 1];
+      } else if (dayType === 'saturday') {
+        rawTimeRange = timingMap.saturday[sessIdx] || defaultSatTimings[sessIdx] || '09:00 - 11:00';
+      } else if (dayType === 'sunday') {
+        rawTimeRange = timingMap.sunday[sessIdx] || defaultSunTimings[sessIdx] || '10:30 - 12:15';
+      } else {
+        rawTimeRange = timingMap.weekday[sessIdx] || defaultWeekdayTimings[sessIdx] || '09:00 - 11:00';
       }
 
       const timeParts = rawTimeRange.split(/(?:to|-)/i);
       const startTimeRaw = timeParts[0] || '09:00';
       const formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
 
-      let title = '';
-      let desc = '';
-
-      if (isHoliday) {
-        title = subjectVal;
-        desc = facultyVal;
-      } else {
-        title = subjectVal || 'Blank'; 
-        desc = facultyVal;
-      }
+      let title = subjectVal || facultyVal || 'Class Session';
+      let desc = facultyVal !== title ? facultyVal : '';
 
       if (isHoliday && events.some(e => e.title === title && (e.date === parsedDateStr || e.dayOfWeek === parsedDayOfWeek))) {
         continue;
