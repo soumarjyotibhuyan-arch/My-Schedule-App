@@ -21,7 +21,16 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "pwa": {
+        "name": "ScheduleSync - Timetable & Alarm Manager",
+        "shortName": "ScheduleSync",
+        "startUrl": "/",
+        "display": "standalone",
+        "backgroundColor": "#12131A",
+        "themeColor": "#208AEF",
+        "description": "Smart Schedule & Timetable Sync for Noise Smartwatch and Mobile"
+      }
     },
     "plugins": [
       "expo-router",

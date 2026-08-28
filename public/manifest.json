@@ -1,0 +1,29 @@
+{
+  "short_name": "ScheduleSync",
+  "name": "ScheduleSync - Timetable & Alarm Manager",
+  "description": "Smart Schedule & Timetable Sync for Noise Smartwatch and Mobile",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#12131A",
+  "theme_color": "#208AEF",
+  "display": "standalone",
+  "orientation": "portrait"
+}

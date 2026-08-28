@@ -1,5 +1,6 @@
 import { ScheduleEvent } from '../types';
 import { classifyEventCategory, getDefaultTimeForCategory } from './categorizer';
+import { parseGridTimetable } from './gridParser';
 
 const DAYS_MAP: Record<string, number> = {
   monday: 1, mon: 1,
@@ -13,6 +14,20 @@ const DAYS_MAP: Record<string, number> = {
 
 export function parsePDFText(text: string): ScheduleEvent[] {
   const lines = text.split('\n');
+
+  // Pass 0: Attempt grid timetable parsing for structured PDF tables
+  const splitDelimiters = [/\t|\||\s{2,}/, /,/, /;/];
+  for (const delim of splitDelimiters) {
+    const rows = lines
+      .map(line => line.split(delim).map(cell => cell.trim()))
+      .filter(row => row.some(cell => cell.length > 0));
+    
+    const gridResult = parseGridTimetable(rows);
+    if (gridResult && gridResult.length > 0) {
+      return gridResult;
+    }
+  }
+
   const events: ScheduleEvent[] = [];
   
   let lastSeenDayOrDate: { dayOfWeek?: number; date?: string } = {};
