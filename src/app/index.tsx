@@ -289,14 +289,7 @@ export default function HomeScreen() {
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-          'application/vnd.ms-excel', // .xls
-          'text/csv', // .csv
-          'application/pdf', // .pdf
-          'text/plain', // .txt, etc.
-          '*/*', // Enable fully dynamic format sniffing for all picked files
-        ],
+        type: '*/*',
         copyToCacheDirectory: true,
       });
 
@@ -305,14 +298,19 @@ export default function HomeScreen() {
       const asset = result.assets[0];
       setLoading(true);
 
-      // Read as base64 first to inspect the file signature
+      const fileName = (asset.name || '').toLowerCase();
       const base64 = await readFileAsBase64(asset.uri);
       const cleanBase64 = base64.trim();
 
-      if (cleanBase64.startsWith('JVBER')) {
+      if (fileName.endsWith('.pdf') || cleanBase64.startsWith('JVBER')) {
         // PDF File Format (base64 for %PDF)
         setPdfBase64(base64);
-      } else if (cleanBase64.startsWith('UEsDB') || cleanBase64.startsWith('0M8R4')) {
+      } else if (
+        fileName.endsWith('.xlsx') ||
+        fileName.endsWith('.xls') ||
+        cleanBase64.startsWith('UEsDB') ||
+        cleanBase64.startsWith('0M8R4')
+      ) {
         // Excel File Format (.xlsx starts with UEsDB, .xls starts with 0M8R4)
         const parsed = parseExcel(base64);
         await saveParsedEvents(parsed);
