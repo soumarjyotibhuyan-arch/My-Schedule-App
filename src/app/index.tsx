@@ -414,7 +414,9 @@ export default function HomeScreen() {
     setEvents([]);
     await clearEvents();
     await cancelAllNotifications();
-    showAlert('Cleared', 'All scheduled alerts have been canceled.');
+    setDefaultReminderOffset(5);
+    await saveDefaultReminderOffset(5);
+    showAlert('Application Reset', 'All scheduled alarms and configurations have been successfully reset.');
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -532,6 +534,16 @@ export default function HomeScreen() {
                   </Pressable>
                 ))}
               </View>
+              
+              <Pressable
+                style={({ pressed }) => [
+                  styles.resetAppButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleClearSchedule}
+              >
+                <Text style={styles.resetAppButtonText}>🔄 Reset Application Alarms & Settings</Text>
+              </Pressable>
             </View>
 
             {/* Mobile Calendar Preview (below uploader) */}
@@ -1308,5 +1320,20 @@ const styles = StyleSheet.create({
   },
   activePillText: {
     fontWeight: 'bold',
+  },
+  resetAppButton: {
+    marginTop: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: '#FF3B30',
+    backgroundColor: 'rgba(255, 59, 48, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetAppButtonText: {
+    color: '#FF3B30',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
