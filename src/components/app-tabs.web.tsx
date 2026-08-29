@@ -6,7 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions, Image } from 'react-native';
+import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions, Image, Platform } from 'react-native';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -88,7 +88,7 @@ export function CustomTabList(props: TabListProps) {
         ]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 'auto' }}>
           <Image
-            source={{ uri: '/logo.png' }}
+            source={Platform.OS === 'web' ? { uri: '/logo.png' } : require('../../assets/images/icon.png')}
             style={{ width: isMobile ? 22 : 28, height: isMobile ? 22 : 28, borderRadius: 6 }}
             resizeMode="contain"
           />

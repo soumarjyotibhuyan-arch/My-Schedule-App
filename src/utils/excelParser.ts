@@ -21,28 +21,28 @@ export async function parseExcelAsync(base64Content: string): Promise<ScheduleEv
   const worksheet = workbook.Sheets[firstSheetName];
   const dataRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: '' });
 
-  const rawText = dataRows.map(r => r.join(', ')).join('\n');
+  const rawText = dataRows.map(r => Array.isArray(r) ? r.join(', ') : String(r)).join('\n');
   const agenticEvents = await runAgenticFormatAdapter(rawText, dataRows);
   if (agenticEvents.length > 0) {
     return agenticEvents;
   }
 
-  return parseExcel(base64Content);
+  return parseExcelFromRows(dataRows);
 }
 
 export function parseExcel(base64Content: string): ScheduleEvent[] {
-  // Read the excel workbook from base64 string
   const workbook = XLSX.read(base64Content, { type: 'base64', cellDates: true });
-  
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
-  
-  // Read worksheet as a 2D array of raw values
   const dataRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: '' });
 
+  return parseExcelFromRows(dataRows);
+}
+
+export function parseExcelFromRows(dataRows: any[][]): ScheduleEvent[] {
   // Try to parse using the multi-session grid parser first
   const gridEvents = parseGridTimetable(dataRows);
-  if (gridEvents) {
+  if (gridEvents && gridEvents.length > 0) {
     return gridEvents;
   }
 

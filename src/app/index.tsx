@@ -40,9 +40,14 @@ async function readFileAsText(uri: string): Promise<string> {
     const response = await fetch(uri);
     return await response.text();
   } else {
-    return await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    try {
+      return await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+    } catch (e) {
+      const response = await fetch(uri);
+      return await response.text();
+    }
   }
 }
 
@@ -63,9 +68,24 @@ async function readFileAsBase64(uri: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } else {
-    return await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    try {
+      return await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    } catch (e) {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file as base64'));
+        reader.readAsDataURL(blob);
+      });
+    }
   }
 }
 
@@ -613,7 +633,7 @@ function formatDateHeader(dateStr?: string): string {
           <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
               <Image
-                source={{ uri: '/logo.png' }}
+                source={Platform.OS === 'web' ? { uri: '/logo.png' } : require('../../assets/images/icon.png')}
                 style={{ width: width < 480 ? 32 : 44, height: width < 480 ? 32 : 44, borderRadius: 8 }}
                 resizeMode="contain"
               />

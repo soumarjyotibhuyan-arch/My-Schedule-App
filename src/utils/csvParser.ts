@@ -27,7 +27,7 @@ export async function parseCSVAsync(csvContent: string): Promise<ScheduleEvent[]
     return agenticEvents;
   }
 
-  return parseCSV(csvContent);
+  return parseCSVFromRows(dataRows);
 }
 
 export function parseCSV(csvContent: string): ScheduleEvent[] {
@@ -35,12 +35,14 @@ export function parseCSV(csvContent: string): ScheduleEvent[] {
     header: false,
     skipEmptyLines: true,
   }) as any;
-
   const dataRows: any[][] = parsed.data || [];
+  return parseCSVFromRows(dataRows);
+}
 
+export function parseCSVFromRows(dataRows: any[][]): ScheduleEvent[] {
   // Try to parse using the multi-session grid parser first
   const gridEvents = parseGridTimetable(dataRows);
-  if (gridEvents) {
+  if (gridEvents && gridEvents.length > 0) {
     return gridEvents;
   }
 
