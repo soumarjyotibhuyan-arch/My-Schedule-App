@@ -1,40 +1,58 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#0F172A',
+    background: '#F8FAFC',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#EEF2FF',
+    textSecondary: '#64748B',
+    accentIndigo: '#6366F1',
+    accentPink: '#EC4899',
+    accentCyan: '#06B6D4',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F8FAFC',
+    background: '#090D16',
+    backgroundElement: '#131B2E',
+    backgroundSelected: '#1E293B',
+    textSecondary: '#94A3B8',
+    accentIndigo: '#818CF8',
+    accentPink: '#F472B6',
+    accentCyan: '#22D3EE',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+export const GenZFonts = Platform.select({
+  web: {
+    chunkoBold: 'var(--font-chunko)',
+    drukHeader: 'var(--font-druk)',
+    gintoBody: 'var(--font-ginto)',
+    offBitMono: 'var(--font-offbit)',
+    glofiumChunky: 'var(--font-glofium)',
+    instrumentSans: 'var(--font-instrument)',
+    instrumentSerif: 'var(--font-serif)',
+  },
+  default: {
+    chunkoBold: 'sans-serif',
+    drukHeader: 'sans-serif',
+    gintoBody: 'sans-serif',
+    offBitMono: 'monospace',
+    glofiumChunky: 'sans-serif',
+    instrumentSans: 'sans-serif',
+    instrumentSerif: 'serif',
+  },
+});
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

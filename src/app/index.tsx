@@ -26,7 +26,7 @@ import {
 import CalendarPreview from '../components/CalendarPreview';
 import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
 import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext } from '../utils/dateUtils';
-import { Colors, Spacing, BottomTabInset, MaxContentWidth } from '../constants/theme';
+import { Colors, Spacing, BottomTabInset, MaxContentWidth, GenZFonts } from '../constants/theme';
 import { useColorScheme } from 'react-native';
 
 const DAYS_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -1125,12 +1125,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+    fontSize: 32,
+    fontWeight: '900',
+    fontFamily: GenZFonts.chunkoBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: GenZFonts.instrumentSans,
     marginTop: Spacing.one,
     textAlign: 'center',
   },
@@ -1147,6 +1150,7 @@ const styles = StyleSheet.create({
   permissionText: {
     color: '#7F6000',
     fontWeight: 'bold',
+    fontFamily: GenZFonts.gintoBody,
     fontSize: 13,
   },
   uploadCard: {
@@ -1155,36 +1159,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.four,
     borderWidth: 1.5,
-    borderColor: 'rgba(32, 138, 239, 0.15)',
+    borderColor: 'rgba(99, 102, 241, 0.25)',
     borderStyle: 'dashed',
   },
   uploadLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: GenZFonts.glofiumChunky,
+    letterSpacing: 0.5,
   },
   uploadDesc: {
     fontSize: 12,
+    fontFamily: GenZFonts.gintoBody,
     marginTop: Spacing.one,
     marginBottom: Spacing.three,
   },
   uploadButton: {
-    backgroundColor: '#208AEF',
+    backgroundColor: '#6366F1',
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
     borderRadius: Spacing.five,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 160,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    elevation: 4,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   uploadButtonText: {
     color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '900',
+    fontSize: 13,
+    fontFamily: GenZFonts.chunkoBold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   tabContainer: {
     marginBottom: Spacing.two,
@@ -1205,14 +1215,16 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#208AEF',
+    borderBottomColor: '#6366F1',
   },
   tabButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontFamily: GenZFonts.gintoBody,
+    fontWeight: '600',
   },
   activeTabText: {
-    fontWeight: 'bold',
+    fontWeight: '900',
+    fontFamily: GenZFonts.chunkoBold,
   },
   listContainer: {
     flex: 1,
@@ -1227,6 +1239,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+    fontFamily: GenZFonts.instrumentSans,
     fontStyle: 'italic',
   },
   eventCard: {
@@ -1248,32 +1261,37 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   eventTime: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: GenZFonts.offBitMono,
+    letterSpacing: 0.5,
   },
   reminderBadge: {
-    backgroundColor: 'rgba(32, 138, 239, 0.1)',
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-    borderRadius: 8,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
   },
   reminderBadgeText: {
-    color: '#208AEF',
+    color: '#6366F1',
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontFamily: GenZFonts.offBitMono,
   },
   eventTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
+    fontFamily: GenZFonts.glofiumChunky,
   },
   eventDesc: {
     fontSize: 13,
+    fontFamily: GenZFonts.instrumentSans,
     marginTop: Spacing.half,
   },
   eventDateTag: {
     fontSize: 11,
     marginTop: Spacing.one,
-    fontStyle: 'italic',
+    fontFamily: GenZFonts.offBitMono,
   },
   deleteButton: {
     width: 36,

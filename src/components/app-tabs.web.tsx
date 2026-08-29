@@ -54,8 +54,8 @@ export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          📅 My Schedule App
+        <ThemedText type="smallBold" style={[styles.brandText, { fontFamily: 'var(--font-chunko)', fontWeight: '900', letterSpacing: 0.5 }]}>
+          ⚡ MY SCHEDULE APP
         </ThemedText>
 
         {props.children}
