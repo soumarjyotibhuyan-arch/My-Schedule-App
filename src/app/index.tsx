@@ -590,7 +590,7 @@ export default function HomeScreen() {
   };
 
   const handleClearSchedule = () => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const confirm = window.confirm('Are you sure you want to delete all timetable events and cancel all notifications?');
       if (confirm) {
         clearAllEventsAndNotifications();

@@ -41,21 +41,18 @@ export function generateGoogleCalendarUrl(event: ScheduleEvent): string {
  */
 export function openInGoogleCalendar(event: ScheduleEvent): void {
   const url = generateGoogleCalendarUrl(event);
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.open(url, '_blank');
   } else {
     Linking.openURL(url);
   }
 }
 
-/**
- * Generates downloadable .ics (iCalendar) file string to import full schedule into Google Calendar.
- */
 export function generateICSContent(events: ScheduleEvent[]): string {
   let ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//My Schedule App//Google Calendar Sync//EN',
+    'PRODID:-//RoutineSync//Google Calendar Sync//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:My Coursework Timetable'
@@ -78,7 +75,7 @@ export function generateICSContent(events: ScheduleEvent[]): string {
     const endDate = new Date(startDate.getTime() + 90 * 60000);
 
     ics.push('BEGIN:VEVENT');
-    ics.push(`UID:${event.id}@myscheduleapp.com`);
+    ics.push(`UID:${event.id}@routinesync.com`);
     ics.push(`DTSTAMP:${formatIsoUtc(new Date())}`);
     ics.push(`DTSTART:${formatIsoUtc(startDate)}`);
     ics.push(`DTEND:${formatIsoUtc(endDate)}`);
@@ -95,37 +92,27 @@ export function generateICSContent(events: ScheduleEvent[]): string {
   return ics.join('\r\n');
 }
 
-/**
- * Triggers browser download of .ics file for bulk Google Calendar import.
- */
 export function downloadGoogleCalendarICS(events: ScheduleEvent[]): void {
   const content = generateICSContent(events);
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
     const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', 'My_Schedule_Google_Calendar.ics');
+    link.setAttribute('download', 'RoutineSync_Google_Calendar.ics');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 }
 
-/**
- * 2. Google Maps Platform Integration:
- * Generates direct Google Maps search & routing URL for classroom venues.
- */
 export function generateGoogleMapsUrl(venueStr?: string): string {
-  const query = venueStr ? encodeURIComponent(venueStr) : encodeURIComponent('Christ University Campus');
+  const query = venueStr ? encodeURIComponent(venueStr) : encodeURIComponent('Campus Classroom');
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
-/**
- * Open venue location in Google Maps.
- */
 export function openInGoogleMaps(venueStr?: string): void {
   const url = generateGoogleMapsUrl(venueStr);
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.open(url, '_blank');
   } else {
     Linking.openURL(url);
