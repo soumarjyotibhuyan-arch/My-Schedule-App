@@ -389,6 +389,80 @@ export default function HomeScreen() {
     await saveParsedEvents(parsed);
   };
 
+  const handleLoadDemoSchedule = async () => {
+    setLoading(true);
+    const demoEvents: ScheduleEvent[] = [
+      {
+        id: `demo-1-${Date.now()}`,
+        title: 'Data Structures & Algorithms',
+        time: '09:00',
+        rawTime: '09:00 AM - 10:30 AM',
+        dayOfWeek: 1,
+        venue: 'Room 628, LHC Building',
+        faculty: 'Dr. Sumathi',
+        category: 'Deep Work',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+      {
+        id: `demo-2-${Date.now()}`,
+        title: 'Web Application Architecture',
+        time: '11:30',
+        rawTime: '11:30 AM - 01:00 PM',
+        dayOfWeek: 1,
+        venue: 'Lab 304, Tech Park',
+        faculty: 'Prof. Rahul',
+        category: 'Collaborative',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+      {
+        id: `demo-3-${Date.now()}`,
+        title: 'Mathematics III & Linear Algebra',
+        time: '10:00',
+        rawTime: '10:00 AM - 11:30 AM',
+        dayOfWeek: 2,
+        venue: 'Room 402, Block A',
+        faculty: 'Dr. Kumar',
+        category: 'Deep Work',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+      {
+        id: `demo-4-${Date.now()}`,
+        title: 'Machine Learning & GenAI',
+        time: '14:00',
+        rawTime: '02:00 PM - 03:30 PM',
+        dayOfWeek: 3,
+        venue: 'LHC-101 Auditorium',
+        faculty: 'Dr. Anita',
+        category: 'Collaborative',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+      {
+        id: `demo-5-${Date.now()}`,
+        title: 'Operating Systems & Linux Kernel',
+        time: '09:00',
+        rawTime: '09:00 AM - 10:30 AM',
+        dayOfWeek: 4,
+        venue: 'Room 628, LHC Building',
+        faculty: 'Dr. Sumathi',
+        category: 'Deep Work',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+      {
+        id: `demo-6-${Date.now()}`,
+        title: 'Database Management Systems',
+        time: '11:30',
+        rawTime: '11:30 AM - 01:00 PM',
+        dayOfWeek: 5,
+        venue: 'Lab 102',
+        faculty: 'Dr. Ramesh',
+        category: 'Administrative',
+        reminderMinutesBefore: defaultReminderOffset,
+      },
+    ];
+
+    await saveParsedEvents(demoEvents);
+  };
+
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -673,15 +747,28 @@ function formatDateHeader(dateStr?: string): string {
                   Supports Excel (.xlsx) and CSV (.csv) formats
                 </Text>
                 
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.uploadButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handlePickDocument}
-                >
-                  <Text style={styles.uploadButtonText}>📁 Select Timetable File</Text>
-                </Pressable>
+                <View style={{ gap: 8, marginTop: 4 }}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.uploadButton,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handlePickDocument}
+                  >
+                    <Text style={styles.uploadButtonText}>📁 Select Timetable File (.csv / .xlsx)</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.uploadButton,
+                      { backgroundColor: '#E9D5FF' },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleLoadDemoSchedule}
+                  >
+                    <Text style={[styles.uploadButtonText, { color: '#18181B' }]}>⚡ Try Sample Demo Schedule</Text>
+                  </Pressable>
+                </View>
               </View>
 
               {/* Alarm Reminder Settings Card */}
