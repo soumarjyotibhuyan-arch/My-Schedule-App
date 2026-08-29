@@ -1,10 +1,11 @@
 {
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
+  "cleanUrls": true,
   "framework": null,
   "rewrites": [
     {
-      "source": "/((?!.*\\.(js|css|png|jpg|jpeg|gif|ico|json|svg|woff|woff2|ttf|eot)|_expo/.*).*)",
+      "source": "/((?!_expo/|.*\\.(?:js|css|png|jpg|jpeg|gif|ico|json|svg|woff|woff2|ttf|eot)$).*)",
       "destination": "/index.html"
     }
   ]
