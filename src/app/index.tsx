@@ -1044,11 +1044,11 @@ function formatDateHeader(dateStr?: string): string {
                   ]}
                   onPress={() => setFilterPastEvents(!filterPastEvents)}
                 >
-                  <Text style={[styles.pastFilterToggleText, { color: filterPastEvents ? '#208AEF' : theme.text }]}>
-                    {filterPastEvents ? '✅ Real-Time Past Date Pruning (Active)' : '⚠️ Include Outdated Past Dates'}
+                  <Text style={[styles.pastFilterToggleText, { color: filterPastEvents ? '#E53935' : '#208AEF' }]}>
+                    {filterPastEvents ? '🧹 Real-Time Past Date Pruning (Active)' : '📅 Preserve All Dates (Recommended)'}
                   </Text>
                   <Text style={{ fontSize: 10, color: theme.textSecondary, marginTop: 2 }}>
-                    {filterPastEvents ? `Auto-deletes ${pastEventsCount} outdated past events before ${todayStr}` : 'All past events will be kept'}
+                    {filterPastEvents ? `Auto-deletes ${pastEventsCount} past events prior to ${todayStr}` : `All ${pendingEvents.length} events across past & future dates are kept intact`}
                   </Text>
                 </Pressable>
 

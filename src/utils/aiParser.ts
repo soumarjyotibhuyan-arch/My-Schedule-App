@@ -41,7 +41,8 @@ function normalizeDateStr(rawDateStr: string): string | undefined {
   if (match) {
     const day = parseInt(match[1], 10);
     const mStr = match[2].toLowerCase();
-    const yr = match[3] || '2026';
+    const currentYear = new Date().getFullYear();
+    const yr = match[3] || String(currentYear);
     const month = MONTH_MAP[mStr];
     if (month && day >= 1 && day <= 31) {
       return `${yr}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
