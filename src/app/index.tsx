@@ -17,14 +17,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ScheduleEvent } from '../types';
 import { parseCSVAsync } from '../utils/csvParser';
 import { parseExcelAsync } from '../utils/excelParser';
-import { parsePDFTextAsync } from '../utils/pdfParser';
 import { getEvents, saveEvents, clearEvents, getDefaultReminderOffset, saveDefaultReminderOffset } from '../utils/storage';
 import {
   requestNotificationPermissions,
   scheduleAllEvents,
   cancelAllNotifications,
 } from '../utils/notifier';
-import PDFParserWebView from '../components/PDFParserWebView';
 import CalendarPreview from '../components/CalendarPreview';
 import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
 import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext } from '../utils/dateUtils';
@@ -217,7 +215,6 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState<number | 'all' | 'calendar'>('all'); // Default to full schedule
   const [loading, setLoading] = useState(false);
-  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [pendingEvents, setPendingEvents] = useState<ScheduleEvent[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
@@ -317,7 +314,13 @@ export default function HomeScreen() {
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
+        type: [
+          'text/csv',
+          'text/comma-separated-values',
+          'application/csv',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+        ],
         copyToCacheDirectory: true,
       });
 
@@ -331,19 +334,22 @@ export default function HomeScreen() {
       const cleanBase64 = base64.trim();
 
       if (fileName.endsWith('.pdf') || cleanBase64.startsWith('JVBER')) {
-        // PDF File Format (base64 for %PDF)
-        setPdfBase64(base64);
-      } else if (
+        showAlert('PDF Unsupported', 'PDF compatibility has been disabled. Please upload a CSV (.csv) or Excel (.xlsx / .xls) timetable schedule.');
+        setLoading(false);
+        return;
+      }
+
+      if (
         fileName.endsWith('.xlsx') ||
         fileName.endsWith('.xls') ||
         cleanBase64.startsWith('UEsDB') ||
         cleanBase64.startsWith('0M8R4')
       ) {
-        // Excel File Format (.xlsx starts with UEsDB, .xls starts with 0M8R4)
+        // Excel File Format (.xlsx / .xls)
         const parsed = await parseExcelAsync(base64);
         await saveParsedEvents(parsed);
       } else {
-        // Fallback: Treat as a text file / CSV
+        // CSV File Format (.csv)
         const content = await readFileAsText(asset.uri);
         const parsed = await parseCSVAsync(content);
         await saveParsedEvents(parsed);
@@ -422,16 +428,6 @@ export default function HomeScreen() {
     } else {
       showAlert('Import Completed', summaryText);
     }
-    setLoading(false);
-  };
-
-  const handlePdfTextExtracted = async (text: string) => {
-    const parsed = await parsePDFTextAsync(text);
-    await saveParsedEvents(parsed);
-  };
-
-  const handlePdfParseError = (error: string) => {
-    showAlert('PDF Parsing Error', `Failed to extract text from PDF: ${error}`);
     setLoading(false);
   };
 
@@ -581,7 +577,7 @@ function formatDateHeader(dateStr?: string): string {
                   Upload Timetable Schedule
                 </Text>
                 <Text style={[styles.uploadDesc, { color: theme.textSecondary }]}>
-                  Supports Excel (.xlsx), CSV, and PDF formats
+                  Supports Excel (.xlsx) and CSV (.csv) formats
                 </Text>
                 
                 <Pressable
@@ -994,16 +990,6 @@ function formatDateHeader(dateStr?: string): string {
           )}
         </View>
       </ScrollView>
-
-        {/* Hidden PDF Parser WebView */}
-        {pdfBase64 && (
-          <PDFParserWebView
-            pdfBase64={pdfBase64}
-            onTextExtracted={handlePdfTextExtracted}
-            onError={handlePdfParseError}
-            onFinishedProcessing={() => setPdfBase64(null)}
-          />
-        )}
 
         {/* Import Choice & Routine Preview Modal */}
         {modalVisible && (() => {
