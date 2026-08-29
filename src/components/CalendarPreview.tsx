@@ -141,8 +141,8 @@ export default function CalendarPreview({
       {/* Calendar Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#208AEF' }]} />
-          <Text style={[styles.legendText, { color: theme.textSecondary }]}>Scheduled session</Text>
+          <View style={[styles.legendDot, { backgroundColor: '#FF8E8E' }]} />
+          <Text style={[styles.legendText, { color: theme.textSecondary, fontFamily: 'var(--font-ginto)' }]}>Scheduled session</Text>
         </View>
       </View>
     </View>
@@ -152,12 +152,14 @@ export default function CalendarPreview({
 const styles = StyleSheet.create({
   card: {
     padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 18,
+    borderWidth: 2.5,
+    borderColor: '#18181B',
+    shadowColor: '#18181B',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
     width: '100%',
   },
   header: {
@@ -167,20 +169,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   monthLabel: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: 'var(--font-glofium)',
+    letterSpacing: 0.5,
   },
   navBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(128, 128, 128, 0.08)',
+    backgroundColor: '#FFF384',
+    borderWidth: 2,
+    borderColor: '#18181B',
   },
   navBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
+    color: '#18181B',
   },
   weekdaysGrid: {
     flexDirection: 'row',
@@ -191,7 +198,8 @@ const styles = StyleSheet.create({
     width: '14.28%',
     textAlign: 'center',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '900',
+    fontFamily: 'var(--font-offbit)',
   },
   daysGrid: {
     flexDirection: 'row',
@@ -200,23 +208,27 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: '14.28%',
-    height: 36,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
     marginVertical: 1,
     position: 'relative',
   },
   selectedDayCell: {
-    borderWidth: 1,
-    borderColor: 'rgba(32, 138, 239, 0.4)',
+    borderWidth: 2,
+    borderColor: '#18181B',
+    backgroundColor: '#FFF384',
   },
   dayText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'var(--font-ginto)',
   },
   selectedDayText: {
-    fontWeight: '700',
+    fontWeight: '900',
+    fontFamily: 'var(--font-chunko)',
+    color: '#18181B',
   },
   indicatorContainer: {
     position: 'absolute',
@@ -225,20 +237,23 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dotIndicator: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF8E8E',
+    borderWidth: 1,
+    borderColor: '#18181B',
   },
   pressed: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
     marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(128, 128, 128, 0.1)',
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(24, 24, 27, 0.1)',
     paddingTop: 10,
   },
   legendItem: {
@@ -247,12 +262,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#18181B',
   },
   legendText: {
-    fontSize: 9,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

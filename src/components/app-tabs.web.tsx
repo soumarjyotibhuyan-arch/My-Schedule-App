@@ -6,10 +6,8 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { SymbolView } from 'expo-symbols';
 import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
 
-import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
@@ -34,32 +32,67 @@ export default function AppTabs() {
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+      <View
+        style={[
+          styles.tabButtonView,
+          {
+            backgroundColor: isFocused
+              ? isDark ? '#FACC15' : '#FFF384'
+              : isDark ? '#1E1B15' : '#FFFFFF',
+            borderColor: isDark ? '#FAFAFA' : '#18181B',
+          },
+        ]}>
+        <ThemedText
+          type="small"
+          style={{
+            color: isFocused ? '#18181B' : isDark ? '#A1A1AA' : '#52525B',
+            fontWeight: isFocused ? '900' : '600',
+            fontFamily: 'var(--font-chunko)',
+            letterSpacing: 0.5,
+          }}>
           {children}
         </ThemedText>
-      </ThemedView>
+      </View>
     </Pressable>
   );
 }
 
 export function CustomTabList(props: TabListProps) {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const isDark = scheme === 'dark';
 
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={[styles.brandText, { fontFamily: 'var(--font-chunko)', fontWeight: '900', letterSpacing: 0.5 }]}>
-          ⚡ MY SCHEDULE APP
+      <View
+        style={[
+          styles.innerContainer,
+          {
+            backgroundColor: isDark ? '#1E1B15' : '#FFFFFF',
+            borderColor: isDark ? '#FAFAFA' : '#18181B',
+          },
+        ]}>
+        <ThemedText
+          type="smallBold"
+          style={[
+            styles.brandText,
+            {
+              fontFamily: 'var(--font-chunko)',
+              fontWeight: '900',
+              fontSize: 16,
+              letterSpacing: 0.5,
+              color: isDark ? '#FAFAFA' : '#18181B',
+            },
+          ]}>
+          ⚡ SCHEDULE SYNC
         </ThemedText>
 
         {props.children}
-      </ThemedView>
+      </View>
     </View>
   );
 }
@@ -68,37 +101,45 @@ const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
     width: '100%',
-    padding: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingHorizontal: Spacing.three,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
+    zIndex: 999,
   },
   innerContainer: {
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
+    paddingHorizontal: Spacing.four,
+    borderRadius: 20,
+    borderWidth: 2.5,
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
+    elevation: 4,
+    shadowColor: '#18181B',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   brandText: {
     marginRight: 'auto',
   },
   pressed: {
-    opacity: 0.7,
+    opacity: 0.8,
+    transform: [{ translateY: 1 }],
   },
   tabButtonView: {
-    paddingVertical: Spacing.one,
+    paddingVertical: 6,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
+    borderRadius: 12,
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: '#18181B',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
 });

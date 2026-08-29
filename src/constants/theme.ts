@@ -4,24 +4,28 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#0F172A',
-    background: '#F8FAFC',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#EEF2FF',
-    textSecondary: '#64748B',
-    accentIndigo: '#6366F1',
-    accentPink: '#EC4899',
-    accentCyan: '#06B6D4',
+    text: '#18181B',
+    background: '#FFFBEA', // Spark Warm Sunshine Yellow/Cream Background
+    backgroundElement: '#FFFFFF', // Crisp White Cards
+    backgroundSelected: '#FFF384', // Bright Yellow Highlight
+    textSecondary: '#52525B',
+    accentYellow: '#FFF384',
+    accentPurple: '#E9D5FF',
+    accentCoral: '#FF8E8E',
+    accentGreen: '#A7F3D0',
+    borderDark: '#18181B',
   },
   dark: {
-    text: '#F8FAFC',
-    background: '#090D16',
-    backgroundElement: '#131B2E',
-    backgroundSelected: '#1E293B',
-    textSecondary: '#94A3B8',
-    accentIndigo: '#818CF8',
-    accentPink: '#F472B6',
-    accentCyan: '#22D3EE',
+    text: '#FAFAFA',
+    background: '#12110D', // Deep Warm Dark Background
+    backgroundElement: '#1E1B15', // Deep Dark Card Element
+    backgroundSelected: '#38321F', // Dark Warm Yellow Highlight
+    textSecondary: '#A1A1AA',
+    accentYellow: '#FACC15',
+    accentPurple: '#C084FC',
+    accentCoral: '#F87171',
+    accentGreen: '#4ADE80',
+    borderDark: '#FAFAFA',
   },
 } as const;
 
@@ -80,4 +84,4 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const MaxContentWidth = 1100; // Expanded for rich responsive desktop grid layouts
