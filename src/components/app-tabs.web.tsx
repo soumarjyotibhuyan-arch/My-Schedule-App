@@ -6,7 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions } from 'react-native';
+import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions, Image } from 'react-native';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -86,20 +86,27 @@ export function CustomTabList(props: TabListProps) {
             gap: isMobile ? Spacing.one : Spacing.two,
           },
         ]}>
-        <ThemedText
-          type="smallBold"
-          style={[
-            styles.brandText,
-            {
-              fontFamily: 'var(--font-chunko)',
-              fontWeight: '900',
-              fontSize: isMobile ? 13 : 16,
-              letterSpacing: 0.5,
-              color: isDark ? '#FAFAFA' : '#18181B',
-            },
-          ]}>
-          ⚡ {isMobile ? 'SCHEDULE' : 'SCHEDULE SYNC'}
-        </ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 'auto' }}>
+          <Image
+            source={{ uri: '/logo.png' }}
+            style={{ width: isMobile ? 22 : 28, height: isMobile ? 22 : 28, borderRadius: 6 }}
+            resizeMode="contain"
+          />
+          <ThemedText
+            type="smallBold"
+            style={[
+              styles.brandText,
+              {
+                fontFamily: 'var(--font-chunko)',
+                fontWeight: '900',
+                fontSize: isMobile ? 13 : 16,
+                letterSpacing: 0.5,
+                color: isDark ? '#FAFAFA' : '#18181B',
+              },
+            ]}>
+            {isMobile ? 'ROUTINE' : 'ROUTINESYNC'}
+          </ThemedText>
+        </View>
 
         {props.children}
       </View>

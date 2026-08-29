@@ -1,7 +1,7 @@
 {
-  "short_name": "ScheduleSync",
-  "name": "ScheduleSync - Timetable & Alarm Manager",
-  "description": "Smart Schedule & Timetable Sync for Noise Smartwatch and Mobile",
+  "short_name": "RoutineSync",
+  "name": "RoutineSync - Timetable & Alarm Manager",
+  "description": "Smart Routine & Timetable Sync for Noise Smartwatch and Mobile",
   "icons": [
     {
       "src": "/favicon.png",
@@ -22,8 +22,8 @@
     }
   ],
   "start_url": "/",
-  "background_color": "#12131A",
-  "theme_color": "#208AEF",
+  "background_color": "#FFFBEA",
+  "theme_color": "#FFF384",
   "display": "standalone",
   "orientation": "portrait"
 }

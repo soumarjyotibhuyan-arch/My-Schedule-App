@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
@@ -610,11 +611,18 @@ function formatDateHeader(dateStr?: string): string {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text, fontSize: width < 480 ? 24 : 32 }]}>
-              ⚡ SCHEDULE SYNC
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+              <Image
+                source={{ uri: '/logo.png' }}
+                style={{ width: width < 480 ? 32 : 44, height: width < 480 ? 32 : 44, borderRadius: 8 }}
+                resizeMode="contain"
+              />
+              <Text style={[styles.title, { color: theme.text, fontSize: width < 480 ? 24 : 32 }]}>
+                ROUTINESYNC
+              </Text>
+            </View>
             <Text style={[styles.subtitle, { color: theme.textSecondary, fontSize: width < 480 ? 11 : 13 }]}>
-              Push reminders to your Noise Smartwatch & Mobile
+              Smart Timetable Sync for Noise Smartwatch & Mobile
             </Text>
           </View>
 

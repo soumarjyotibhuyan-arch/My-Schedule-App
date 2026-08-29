@@ -1,21 +1,19 @@
 {
   "expo": {
-    "name": "myscheduleapp",
-    "slug": "myscheduleapp",
+    "name": "RoutineSync",
+    "slug": "RoutineSync",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myscheduleapp",
+    "scheme": "routinesync",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFBEA",
+        "foregroundImage": "./assets/images/icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -23,13 +21,13 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png",
       "pwa": {
-        "name": "ScheduleSync - Timetable & Alarm Manager",
-        "shortName": "ScheduleSync",
+        "name": "RoutineSync - Timetable & Alarm Manager",
+        "shortName": "RoutineSync",
         "startUrl": "/",
         "display": "standalone",
-        "backgroundColor": "#12131A",
-        "themeColor": "#208AEF",
-        "description": "Smart Schedule & Timetable Sync for Noise Smartwatch and Mobile"
+        "backgroundColor": "#FFFBEA",
+        "themeColor": "#FFF384",
+        "description": "Smart Routine & Timetable Sync for Noise Smartwatch and Mobile"
       }
     },
     "plugins": [
@@ -37,16 +35,16 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FFF384",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 120
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#208AEF"
+          "color": "#FFF384"
         }
       ]
     ],
