@@ -13,6 +13,23 @@ const DAYS_MAP: Record<string, number> = {
   sunday: 7, sun: 7
 };
 
+import { parseScheduleWithAI } from './aiParser';
+
+export async function parseExcelAsync(base64Content: string): Promise<ScheduleEvent[]> {
+  const workbook = XLSX.read(base64Content, { type: 'base64', cellDates: true });
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  const dataRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: '' });
+
+  const rawText = dataRows.map(r => r.join(', ')).join('\n');
+  const aiResult = await parseScheduleWithAI(rawText, dataRows);
+  if (aiResult.events.length > 0) {
+    return aiResult.events;
+  }
+
+  return parseExcel(base64Content);
+}
+
 export function parseExcel(base64Content: string): ScheduleEvent[] {
   // Read the excel workbook from base64 string
   const workbook = XLSX.read(base64Content, { type: 'base64', cellDates: true });

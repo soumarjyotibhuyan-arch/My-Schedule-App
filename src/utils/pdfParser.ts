@@ -12,6 +12,16 @@ const DAYS_MAP: Record<string, number> = {
   sunday: 7, sun: 7
 };
 
+import { parseScheduleWithAI } from './aiParser';
+
+export async function parsePDFTextAsync(text: string): Promise<ScheduleEvent[]> {
+  const aiResult = await parseScheduleWithAI(text);
+  if (aiResult.events.length > 0) {
+    return aiResult.events;
+  }
+  return parsePDFText(text);
+}
+
 export function parsePDFText(text: string): ScheduleEvent[] {
   const lines = text.split('\n');
 

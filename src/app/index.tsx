@@ -15,9 +15,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { ScheduleEvent } from '../types';
-import { parseCSV } from '../utils/csvParser';
-import { parseExcel } from '../utils/excelParser';
-import { parsePDFText } from '../utils/pdfParser';
+import { parseCSVAsync } from '../utils/csvParser';
+import { parseExcelAsync } from '../utils/excelParser';
+import { parsePDFTextAsync } from '../utils/pdfParser';
 import { getEvents, saveEvents, clearEvents, getDefaultReminderOffset, saveDefaultReminderOffset } from '../utils/storage';
 import {
   requestNotificationPermissions,
@@ -26,6 +26,7 @@ import {
 } from '../utils/notifier';
 import PDFParserWebView from '../components/PDFParserWebView';
 import CalendarPreview from '../components/CalendarPreview';
+import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
 import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext } from '../utils/dateUtils';
 import { Colors, Spacing, BottomTabInset, MaxContentWidth } from '../constants/theme';
 import { useColorScheme } from 'react-native';
@@ -339,12 +340,12 @@ export default function HomeScreen() {
         cleanBase64.startsWith('0M8R4')
       ) {
         // Excel File Format (.xlsx starts with UEsDB, .xls starts with 0M8R4)
-        const parsed = parseExcel(base64);
+        const parsed = await parseExcelAsync(base64);
         await saveParsedEvents(parsed);
       } else {
         // Fallback: Treat as a text file / CSV
         const content = await readFileAsText(asset.uri);
-        const parsed = parseCSV(content);
+        const parsed = await parseCSVAsync(content);
         await saveParsedEvents(parsed);
       }
     } catch (error) {
@@ -425,7 +426,7 @@ export default function HomeScreen() {
   };
 
   const handlePdfTextExtracted = async (text: string) => {
-    const parsed = parsePDFText(text);
+    const parsed = await parsePDFTextAsync(text);
     await saveParsedEvents(parsed);
   };
 
@@ -817,9 +818,12 @@ function formatDateHeader(dateStr?: string): string {
                                 )}
 
                                 {event.venue && (
-                                  <View style={styles.venueBadge}>
-                                    <Text style={styles.venueBadgeText}>📍 {event.venue}</Text>
-                                  </View>
+                                  <Pressable
+                                    onPress={() => openInGoogleMaps(event.venue)}
+                                    style={({ pressed }) => [styles.venueBadge, pressed && styles.pressed]}
+                                  >
+                                    <Text style={styles.venueBadgeText}>📍 {event.venue} (View on Google Maps)</Text>
+                                  </Pressable>
                                 )}
 
                                 {event.description && event.description !== event.faculty ? (
@@ -829,6 +833,20 @@ function formatDateHeader(dateStr?: string): string {
                                 ) : null}
 
                                 <View style={styles.cardFooter}>
+                                  {/* Google Calendar Single Event Sync Button */}
+                                  <Pressable
+                                    onPress={() => openInGoogleCalendar(event)}
+                                    style={({ pressed }) => [
+                                      styles.periodBadge,
+                                      { backgroundColor: '#4285F415', borderColor: '#4285F4', borderWidth: 1 },
+                                      pressed && styles.pressed,
+                                    ]}
+                                  >
+                                    <Text style={[styles.periodBadgeText, { color: '#4285F4', fontWeight: '700' }]}>
+                                      📅 Google Calendar
+                                    </Text>
+                                  </Pressable>
+
                                   {/* Real-time Status Badge */}
                                   {(() => {
                                     const status = getEventRealTimeStatus(event, realTimeCtx);
@@ -919,6 +937,15 @@ function formatDateHeader(dateStr?: string): string {
             {/* Bulk Action Controls */}
             {events.length > 0 && (
               <View style={styles.footerActions}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.googleCalendarExportBtn,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => downloadGoogleCalendarICS(events)}
+                >
+                  <Text style={styles.googleCalendarExportBtnText}>📅 Export All to Google Calendar (.ics)</Text>
+                </Pressable>
                 <Pressable
                   style={({ pressed }) => [
                     styles.clearButton,
@@ -1729,6 +1756,22 @@ const styles = StyleSheet.create({
   declutterText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  googleCalendarExportBtn: {
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: '#4285F4',
+    backgroundColor: 'rgba(66, 133, 244, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.two,
+  },
+  googleCalendarExportBtnText: {
+    color: '#4285F4',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   resetAppButton: {
     marginTop: Spacing.three,
