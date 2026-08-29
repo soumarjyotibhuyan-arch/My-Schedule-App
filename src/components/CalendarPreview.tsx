@@ -59,19 +59,11 @@ export default function CalendarPreview({
     return `${year}-${mm}-${dd}`;
   };
 
-  // Check if a day has events (either repeating on that day of week or one-off date)
+  // Check if a day has scheduled events
   const getDayStatus = (day: number) => {
     const dateStr = formatDateString(day);
-    
-    // Day of week for this cell (1 = Monday, 7 = Sunday)
-    const cellDate = new Date(year, month, day);
-    let dayOfWeek = cellDate.getDay();
-    dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-
-    const hasRepeating = events.some(e => e.dayOfWeek === dayOfWeek);
-    const hasOneOff = events.some(e => e.date === dateStr);
-
-    return { hasRepeating, hasOneOff };
+    const hasEvent = events.some(e => e.date === dateStr);
+    return { hasEvent };
   };
 
   return (
@@ -107,7 +99,7 @@ export default function CalendarPreview({
 
           const cellDateStr = formatDateString(day);
           const isSelected = selectedDate === cellDateStr;
-          const { hasRepeating, hasOneOff } = getDayStatus(day);
+          const { hasEvent } = getDayStatus(day);
 
           return (
             <Pressable
@@ -137,11 +129,8 @@ export default function CalendarPreview({
               
               {/* Event indicators */}
               <View style={styles.indicatorContainer}>
-                {hasRepeating && (
+                {hasEvent && (
                   <View style={[styles.dotIndicator, { backgroundColor: '#208AEF' }]} />
-                )}
-                {hasOneOff && (
-                  <View style={[styles.dotIndicator, { backgroundColor: '#FF9500' }]} />
                 )}
               </View>
             </Pressable>
@@ -153,11 +142,7 @@ export default function CalendarPreview({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#208AEF' }]} />
-          <Text style={[styles.legendText, { color: theme.textSecondary }]}>Weekly class</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#FF9500' }]} />
-          <Text style={[styles.legendText, { color: theme.textSecondary }]}>One-off event</Text>
+          <Text style={[styles.legendText, { color: theme.textSecondary }]}>Scheduled session</Text>
         </View>
       </View>
     </View>

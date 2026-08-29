@@ -911,12 +911,6 @@ function formatDateHeader(dateStr?: string): string {
                                     📅 {formatFriendlyDate(event.date)}
                                   </Text>
                                 )}
-                                
-                                {event.date && selectedTab !== 'all' && (
-                                  <View style={styles.oneOffBadge}>
-                                    <Text style={styles.oneOffBadgeText}>One-off Date</Text>
-                                  </View>
-                                )}
 
                                 {/* Overlap Conflict warning */}
                                 {hasConflict && (
