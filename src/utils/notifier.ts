@@ -2,13 +2,13 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { ScheduleEvent } from '../types';
 
-// Set up default notification handler for native platforms
+// Set up default notification handler for native platforms (Foreground + Background)
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
       shouldPlaySound: true,
-      shouldSetBadge: false,
+      shouldSetBadge: true,
       shouldShowBanner: true,
       shouldShowList: true,
     }),
@@ -42,13 +42,18 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     return false;
   }
 
-  // Set up notification channel for Android (required for high-priority alerts)
+  // Set up notification channel for Android (required for high-priority alerts & NoiseFit smartwatch mirroring)
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('schedule-alerts', {
-      name: 'Timetable Alarms',
+      name: 'RoutineSync Timetable Alarms',
+      description: 'High-priority routine and class alarms pushed to mobile and Noise smartwatch.',
       importance: Notifications.AndroidImportance.MAX,
+      sound: 'default',
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
+      lightColor: '#FFF384',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
     });
   }
 
@@ -80,59 +85,78 @@ function getFormattedEndTime(timeStr: string): string {
   return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
+// Calculate target Date for weekly repeating days of week (1=Mon ... 7=Sun)
+function getNextDateForDayOfWeek(dayOfWeek: number, targetHour: number, targetMinute: number): Date {
+  const now = new Date();
+  const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // 1 (Mon) .. 7 (Sun)
+  let daysToAdd = (dayOfWeek - currentDay + 7) % 7;
+
+  const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToAdd, targetHour, targetMinute, 0);
+  if (targetDate.getTime() <= now.getTime()) {
+    targetDate.setDate(targetDate.getDate() + 7);
+  }
+  return targetDate;
+}
+
 // Schedule notifications for a single event (Pre-Class Offset, Live Start Alert, and Class Concluded Alert)
 export async function scheduleEventNotification(event: ScheduleEvent): Promise<string[]> {
   const ids: string[] = [];
   if (Platform.OS === 'web') return ids;
 
   try {
-    if (!event.date) return ids;
-
-    const [year, month, day] = event.date.split('-').map((val: string) => parseInt(val, 10));
     const [eventHour, eventMinute] = event.time.split(':').map((val: string) => parseInt(val, 10));
+    let startDateObj: Date | null = null;
 
-    // Construct start Date (Month is 0-indexed in JS Dates)
-    const startDateObj = new Date(year, month - 1, day, eventHour, eventMinute, 0);
+    if (event.date) {
+      const [year, month, day] = event.date.split('-').map((val: string) => parseInt(val, 10));
+      startDateObj = new Date(year, month - 1, day, eventHour, eventMinute, 0);
+    } else if (event.dayOfWeek !== undefined && event.dayOfWeek >= 1 && event.dayOfWeek <= 7) {
+      startDateObj = getNextDateForDayOfWeek(event.dayOfWeek, eventHour, eventMinute);
+    }
+
+    if (!startDateObj) return ids;
 
     // Calculate end Date (Default 90 minutes class duration)
-    const endMinsTotal = eventHour * 60 + eventMinute + 90;
-    const endHour = Math.floor(endMinsTotal / 60) % 24;
-    const endMinute = endMinsTotal % 60;
-    const endDateObj = new Date(year, month - 1, day, endHour, endMinute, 0);
-
+    const endDateObj = new Date(startDateObj.getTime() + 90 * 60000);
     const endTimeDisplay = event.rawTime || getFormattedEndTime(event.time);
+
+    // Common notification content configuration compatible with Android channel & NoiseFit smartwatch
+    const baseContent = {
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      vibrate: [0, 250, 250, 250],
+      ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
+    };
 
     // 1. Pre-Class Offset Reminder
     const reminderTimeMs = startDateObj.getTime() - event.reminderMinutesBefore * 60000;
     if (reminderTimeMs > Date.now()) {
       const reminderId = await Notifications.scheduleNotificationAsync({
         content: {
+          ...baseContent,
           title: `⏰ Upcoming Class (${event.reminderMinutesBefore}m prior): ${event.title}`,
           body: `${event.title} starts at ${event.time}${event.venue ? ` in ${event.venue}` : ''}.`,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: new Date(reminderTimeMs),
-        },
+          date: reminderTimeMs,
+          ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
+        } as any,
       });
       ids.push(reminderId);
     }
 
-    // 2. Live Class Start Alert (Triggers exact class start time, active notification)
+    // 2. Live Class Start Alert (Triggers exact class start time)
     if (startDateObj.getTime() > Date.now()) {
       const liveId = await Notifications.scheduleNotificationAsync({
         content: {
+          ...baseContent,
           title: `🟢 LIVE NOW: ${event.title}`,
-          body: `Class is currently in session (${endTimeDisplay})${event.venue ? ` at ${event.venue}` : ''}. Active until class ends.`,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
+          body: `Class is currently in session (${endTimeDisplay})${event.venue ? ` at ${event.venue}` : ''}.`,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: startDateObj,
-        },
+          date: startDateObj.getTime(),
+          ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
+        } as any,
       });
       ids.push(liveId);
     }
@@ -141,20 +165,19 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
     if (endDateObj.getTime() > Date.now()) {
       const endId = await Notifications.scheduleNotificationAsync({
         content: {
+          ...baseContent,
           title: `🏁 CLASS CONCLUDED: ${event.title}`,
           body: `${event.title} has finished. Checking next scheduled class routine.`,
-          sound: false,
-          priority: Notifications.AndroidNotificationPriority.DEFAULT,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: endDateObj,
-        },
+          date: endDateObj.getTime(),
+          ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
+        } as any,
       });
       ids.push(endId);
     }
   } catch (error) {
-    console.error('Error scheduling notification:', error);
+    console.error('Error scheduling mobile notification:', error);
   }
 
   return ids;

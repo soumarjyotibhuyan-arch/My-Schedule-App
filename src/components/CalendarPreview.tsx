@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { ScheduleEvent } from '../types';
+import { GenZFonts } from '../constants/theme';
 
 interface CalendarPreviewProps {
   events: ScheduleEvent[];
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     fontSize: 16,
     fontWeight: '800',
-    fontFamily: 'var(--font-glofium)',
+    fontFamily: GenZFonts.glofiumChunky,
     letterSpacing: 0.5,
   },
   navBtn: {
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     fontWeight: '900',
-    fontFamily: 'var(--font-offbit)',
+    fontFamily: GenZFonts.offBitMono,
   },
   daysGrid: {
     flexDirection: 'row',
@@ -223,11 +224,11 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: 'var(--font-ginto)',
+    fontFamily: GenZFonts.gintoBody,
   },
   selectedDayText: {
     fontWeight: '900',
-    fontFamily: 'var(--font-chunko)',
+    fontFamily: GenZFonts.chunkoBold,
     color: '#18181B',
   },
   indicatorContainer: {

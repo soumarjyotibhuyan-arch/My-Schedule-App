@@ -42,15 +42,15 @@ export const GenZFonts = Platform.select({
     instrumentSerif: 'var(--font-serif)',
   },
   default: {
-    chunkoBold: 'sans-serif',
-    drukHeader: 'sans-serif',
-    gintoBody: 'sans-serif',
-    offBitMono: 'monospace',
-    glofiumChunky: 'sans-serif',
-    instrumentSans: 'sans-serif',
-    instrumentSerif: 'serif',
+    chunkoBold: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    drukHeader: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    gintoBody: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    offBitMono: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    glofiumChunky: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    instrumentSans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    instrumentSerif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-});
+})!;
 
 export const Fonts = Platform.select({
   ios: {
