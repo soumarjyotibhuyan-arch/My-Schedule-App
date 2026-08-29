@@ -11,7 +11,7 @@ import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions, Image
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing, GenZFonts } from '@/constants/theme';
 
 export default function AppTabs() {
   return (
@@ -56,7 +56,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
           style={{
             color: isFocused ? '#18181B' : isDark ? '#A1A1AA' : '#52525B',
             fontWeight: isFocused ? '900' : '600',
-            fontFamily: 'var(--font-chunko)',
+            fontFamily: GenZFonts.chunkoBold,
             fontSize: isMobile ? 11 : 12,
             letterSpacing: 0.5,
           }}>
@@ -97,7 +97,7 @@ export function CustomTabList(props: TabListProps) {
             style={[
               styles.brandText,
               {
-                fontFamily: 'var(--font-chunko)',
+                fontFamily: GenZFonts.chunkoBold,
                 fontWeight: '900',
                 fontSize: isMobile ? 13 : 16,
                 letterSpacing: 0.5,

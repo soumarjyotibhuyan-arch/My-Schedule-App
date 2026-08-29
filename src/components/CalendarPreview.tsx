@@ -143,7 +143,7 @@ export default function CalendarPreview({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#FF8E8E' }]} />
-          <Text style={[styles.legendText, { color: theme.textSecondary, fontFamily: 'var(--font-ginto)' }]}>Scheduled session</Text>
+          <Text style={[styles.legendText, { color: theme.textSecondary, fontFamily: GenZFonts.gintoBody }]}>Scheduled session</Text>
         </View>
       </View>
     </View>

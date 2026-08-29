@@ -293,17 +293,26 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const savedEvents = await getEvents();
-      setEvents(savedEvents);
+      try {
+        const savedEvents = await getEvents();
+        setEvents(savedEvents);
 
-      const offset = await getDefaultReminderOffset();
-      setDefaultReminderOffset(offset);
+        const offset = await getDefaultReminderOffset();
+        setDefaultReminderOffset(offset);
 
-      const status = await requestNotificationPermissions();
-      setPermissionGranted(status);
+        let status = false;
+        if (Platform.OS === 'web') {
+          status = typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted';
+        } else {
+          status = await requestNotificationPermissions();
+        }
+        setPermissionGranted(status);
 
-      if (status && savedEvents.length > 0) {
-        await scheduleAllEvents(savedEvents);
+        if (status && savedEvents.length > 0) {
+          await scheduleAllEvents(savedEvents);
+        }
+      } catch (e) {
+        console.warn('Error loading initial data on mobile:', e);
       }
     };
 

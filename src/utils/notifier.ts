@@ -22,10 +22,21 @@ let lastNotifiedEventId: string | null = null;
 // Request notifications permissions from user (compatible with native and web)
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (window.Notification.permission === 'granted') return true;
-      const status = await window.Notification.requestPermission();
-      return status === 'granted';
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (window.Notification.permission === 'granted') return true;
+        if (window.Notification.permission === 'denied') return false;
+        
+        // Wrap requestPermission in catch to prevent iOS Mobile Safari user-gesture crashes
+        const status = await window.Notification.requestPermission().catch((err) => {
+          console.warn('Mobile browser user-gesture required for notifications:', err);
+          return 'default';
+        });
+        return status === 'granted';
+      }
+    } catch (e) {
+      console.warn('Notification permission error on mobile browser:', e);
+      return false;
     }
     return false;
   }
