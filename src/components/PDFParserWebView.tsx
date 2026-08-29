@@ -62,13 +62,31 @@ export default function PDFParserWebView({
             
             let fullText = '';
             
-            for (let i = 1; i <= pdf.numPages; i++) {
-              const page = await pdf.getPage(i);
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+              const page = await pdf.getPage(pageNum);
               const textContent = await page.getTextContent();
-              const pageText = textContent.items
-                .map(item => item.str)
-                .join(' ');
-              fullText += pageText + '\\n';
+
+              // Group text items by Y coordinate (rows) to preserve table structure
+              const rows = {};
+              for (const item of textContent.items) {
+                if (!item.str || !item.str.trim()) continue;
+                // Group items within 4px Y-threshold into the same row line
+                const y = Math.round((item.transform ? item.transform[5] : 0) / 4) * 4;
+                const x = item.transform ? item.transform[4] : 0;
+                if (!rows[y]) rows[y] = [];
+                rows[y].push({ x: x, str: item.str });
+              }
+
+              // Sort rows top-to-bottom (higher Y = higher up on PDF page)
+              const sortedYKeys = Object.keys(rows).sort((a, b) => Number(b) - Number(a));
+              
+              for (const yKey of sortedYKeys) {
+                // Sort cells in row left-to-right (lower X = further left)
+                const rowItems = rows[yKey].sort((a, b) => a.x - b.x);
+                const rowLine = rowItems.map(it => it.str).join(' , ');
+                fullText += rowLine + '\\n';
+              }
+              fullText += '\\n';
             }
 
             window.ReactNativeWebView.postMessage(JSON.stringify({
