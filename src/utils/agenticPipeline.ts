@@ -71,6 +71,8 @@ function parseTimeTo24h(timeStr?: string): string {
   return "09:00";
 }
 
+import { parseMultidirectionalGrid } from './multidirectionalParser';
+
 /**
  * Agentic Universal Schedule Format Adapter Pipeline
  * Processes any uploaded file text or raw 2D grid rows into a unified, clean, sorted ScheduleEvent[] format.
@@ -83,11 +85,16 @@ export async function runAgenticFormatAdapter(
   const aiResult = await parseScheduleWithAI(rawText, gridRows);
   let candidateEvents = aiResult.events || [];
 
-  // Phase 2: If AI returned 0 events, try deterministic Grid Matrix Parser
+  // Phase 2: Multidirectional Sequence-Agnostic Grid Matrix Parser (Top-to-Bottom, Left-to-Right, Transposed)
   if (candidateEvents.length === 0 && gridRows && gridRows.length > 0) {
-    const gridEvents = parseGridTimetable(gridRows);
-    if (gridEvents && gridEvents.length > 0) {
-      candidateEvents = gridEvents;
+    const multiEvents = parseMultidirectionalGrid(gridRows);
+    if (multiEvents && multiEvents.length > 0) {
+      candidateEvents = multiEvents;
+    } else {
+      const gridEvents = parseGridTimetable(gridRows);
+      if (gridEvents && gridEvents.length > 0) {
+        candidateEvents = gridEvents;
+      }
     }
   }
 

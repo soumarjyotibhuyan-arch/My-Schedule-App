@@ -87,6 +87,7 @@ REQUIREMENTS:
 3. Categorize each event into one of: 'Deep Work', 'Collaborative', 'Administrative', or 'Wrap-up'.
 4. Do NOT assume weekly recurring loops. Every single entry MUST be treated as an exact-date, non-repeating routine event. Preserve all future dates.
 5. CRITICAL TIMING RULE: Determine session start times accurately! Column 1 (09.00 AM - 11.00 AM) sessions start at 09:00 (or inline time like 09:15, 09:30). Column 2 (11.00 AM - 01.00 PM) sessions start at 11:00 (or inline time like 10:00, 11:00). Column 3 (02.00 PM - 04.00 PM) sessions start at 14:00 (or inline time like 13:30, 14:30, 14:45). Never default every class to 09:00 AM.
+6. SEQUENCE-AGNOSTIC MULTIDIRECTIONAL SCANNING: The file layout may be Top-to-Bottom, Left-to-Right, Transposed, or Non-Standard block sequence. Scan the document in all directions to associate each date anchor with its corresponding time slot, subject title, faculty name, and venue location.
 
 Return strictly valid JSON matching this schema:
 {
