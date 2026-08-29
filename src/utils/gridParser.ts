@@ -328,10 +328,20 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
           faculty = partnerText.replace(/\bVenue\s*:.*$/i, '').trim();
         }
 
+        // Deduplicate Faculty if repeated
+        if (faculty) {
+          const words = faculty.split(/\s+/);
+          const halfLength = Math.floor(words.length / 2);
+          if (halfLength >= 2 && words.slice(0, halfLength).join(' ') === words.slice(halfLength).join(' ')) {
+            faculty = words.slice(0, halfLength).join(' ');
+          }
+        }
+
         // Clean Title
         let cleanTitle = rawText;
         cleanTitle = cleanTitle.replace(/\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi, '');
         cleanTitle = cleanTitle.replace(/\bVenue\s*:[^,\)]+/gi, '');
+        cleanTitle = cleanTitle.replace(/\(\s*\)/g, '');
         cleanTitle = cleanTitle.replace(/[,;:\-_|]/g, ' ').replace(/\s+/g, ' ').trim();
         if (!cleanTitle || cleanTitle.length < 2) cleanTitle = rawText;
 

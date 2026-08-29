@@ -189,7 +189,7 @@ export function parseMultidirectionalGrid(rows: any[][]): ScheduleEvent[] | null
       const cellText = cells[r][c].text;
       if (!cellText || cellText.length < 3) continue;
       if (cells[r][c].dateStr) continue; // Skip date anchor cell itself
-      if (/^(date|day|subject|faculty|time|sl\.?\s*no)$/i.test(cellText)) continue; // Skip header label cells
+      if (/^(date|day|subject|faculty|time|sl\.?\s*no|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)$/i.test(cellText)) continue; // Skip header label & day name cells
 
       // Check inline time inside cell text e.g. "Session by Dr Uma VR 9:15 - 9:45 am"
       let cellTime24h: string | undefined;
