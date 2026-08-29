@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScheduleEvent } from '../types';
+import { ColumnMapping } from './columnMapper';
 
 const STORAGE_KEY = '@my_schedule_events';
+const TEMPLATE_PREFIX = '@my_schedule_column_template_';
 
 export async function saveEvents(events: ScheduleEvent[]): Promise<void> {
   try {
@@ -45,5 +47,28 @@ export async function getDefaultReminderOffset(): Promise<number> {
   } catch (e) {
     console.error('Error loading default reminder offset:', e);
     return 5;
+  }
+}
+
+// Smart Template Saving (Memory per User / File Fingerprint)
+export async function saveColumnTemplate(fingerprint: string, mapping: ColumnMapping): Promise<void> {
+  try {
+    if (!fingerprint) return;
+    const key = `${TEMPLATE_PREFIX}${fingerprint}`;
+    await AsyncStorage.setItem(key, JSON.stringify(mapping));
+  } catch (e) {
+    console.error('Error saving column mapping template:', e);
+  }
+}
+
+export async function getSavedColumnTemplate(fingerprint: string): Promise<ColumnMapping | null> {
+  try {
+    if (!fingerprint) return null;
+    const key = `${TEMPLATE_PREFIX}${fingerprint}`;
+    const val = await AsyncStorage.getItem(key);
+    return val ? JSON.parse(val) : null;
+  } catch (e) {
+    console.error('Error retrieving saved column mapping template:', e);
+    return null;
   }
 }

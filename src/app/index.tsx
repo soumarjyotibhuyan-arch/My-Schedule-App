@@ -17,7 +17,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ScheduleEvent } from '../types';
 import { parseCSVAsync } from '../utils/csvParser';
 import { parseExcelAsync } from '../utils/excelParser';
-import { getEvents, saveEvents, clearEvents, getDefaultReminderOffset, saveDefaultReminderOffset } from '../utils/storage';
+import { getEvents, saveEvents, clearEvents, getDefaultReminderOffset, saveDefaultReminderOffset, saveColumnTemplate, getSavedColumnTemplate } from '../utils/storage';
+import { analyzeGridStructure, parseGridWithMapping, AnalysisResult, ColumnMapping } from '../utils/columnMapper';
+import ColumnMapperModal from '../components/ColumnMapperModal';
 import {
   requestNotificationPermissions,
   scheduleAllEvents,
@@ -217,6 +219,8 @@ export default function HomeScreen() {
   const [selectedTab, setSelectedTab] = useState<number | 'all' | 'calendar'>('all'); // Default to full schedule
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [columnAnalysis, setColumnAnalysis] = useState<AnalysisResult | null>(null);
+  const [activeGridRows, setActiveGridRows] = useState<string[][] | null>(null);
   const [pendingEvents, setPendingEvents] = useState<ScheduleEvent[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [defaultReminderOffset, setDefaultReminderOffset] = useState<number>(5);
@@ -318,6 +322,52 @@ export default function HomeScreen() {
     }
   };
 
+  const handleProcessGridRows = async (gridRows: string[][], forceInspector: boolean = false) => {
+    if (!gridRows || gridRows.length === 0) {
+      showAlert('Empty File', 'The uploaded file appears to be empty.');
+      setLoading(false);
+      return;
+    }
+
+    const analysis = analyzeGridStructure(gridRows);
+    setActiveGridRows(gridRows);
+
+    // 1. Check if user already saved a custom template memory for this file layout
+    const savedTemplate = await getSavedColumnTemplate(analysis.fingerprint);
+
+    if (savedTemplate && !forceInspector) {
+      // Instant auto-apply saved template memory!
+      const parsed = parseGridWithMapping(gridRows, savedTemplate);
+      await saveParsedEvents(parsed);
+      return;
+    }
+
+    // 2. If confidence score < 85% or manual inspector requested -> Trigger User-In-The-Loop Confirmation UI
+    if (analysis.confidenceScore < 85 || forceInspector) {
+      setColumnAnalysis(analysis);
+      setLoading(false);
+      return;
+    }
+
+    // 3. High confidence auto-parse
+    const parsed = parseGridWithMapping(gridRows, analysis.mapping);
+    await saveParsedEvents(parsed);
+  };
+
+  const handleConfirmColumnMapping = async (confirmedMapping: ColumnMapping, saveAsTemplate: boolean) => {
+    if (!activeGridRows || !columnAnalysis) return;
+
+    setLoading(true);
+    if (saveAsTemplate) {
+      await saveColumnTemplate(columnAnalysis.fingerprint, confirmedMapping);
+    }
+
+    const parsed = parseGridWithMapping(activeGridRows, confirmedMapping);
+    setColumnAnalysis(null);
+    setActiveGridRows(null);
+    await saveParsedEvents(parsed);
+  };
+
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -346,6 +396,8 @@ export default function HomeScreen() {
         return;
       }
 
+      let gridRows: string[][] = [];
+
       if (
         fileName.endsWith('.xlsx') ||
         fileName.endsWith('.xls') ||
@@ -353,14 +405,18 @@ export default function HomeScreen() {
         cleanBase64.startsWith('0M8R4')
       ) {
         // Excel File Format (.xlsx / .xls)
-        const parsed = await parseExcelAsync(base64);
-        await saveParsedEvents(parsed);
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(base64, { type: 'base64' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        gridRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
       } else {
         // CSV File Format (.csv)
         const content = await readFileAsText(asset.uri);
-        const parsed = await parseCSVAsync(content);
-        await saveParsedEvents(parsed);
+        gridRows = content.split('\n').map(row => row.split(',').map(cell => cell.trim().replace(/^["']|["']$/g, '')));
       }
+
+      await handleProcessGridRows(gridRows);
     } catch (error) {
       console.error('File pick error:', error);
       showAlert('Upload Failed', 'There was an error selecting, identifying, or reading your file.');
@@ -1106,6 +1162,20 @@ function formatDateHeader(dateStr?: string): string {
             </View>
           );
         })()}
+
+        {/* User-In-The-Loop Column Mapper Modal */}
+        {columnAnalysis && (
+          <ColumnMapperModal
+            analysis={columnAnalysis}
+            onConfirm={handleConfirmColumnMapping}
+            onCancel={() => {
+              setColumnAnalysis(null);
+              setActiveGridRows(null);
+              setLoading(false);
+            }}
+            theme={theme}
+          />
+        )}
       </SafeAreaView>
     </View>
   );
