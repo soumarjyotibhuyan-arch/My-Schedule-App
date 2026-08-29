@@ -13,7 +13,7 @@ const DAYS_MAP: Record<string, number> = {
   sunday: 7, sun: 7
 };
 
-import { parseScheduleWithAI } from './aiParser';
+import { runAgenticFormatAdapter } from './agenticPipeline';
 
 export async function parseExcelAsync(base64Content: string): Promise<ScheduleEvent[]> {
   const workbook = XLSX.read(base64Content, { type: 'base64', cellDates: true });
@@ -22,9 +22,9 @@ export async function parseExcelAsync(base64Content: string): Promise<ScheduleEv
   const dataRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: '' });
 
   const rawText = dataRows.map(r => r.join(', ')).join('\n');
-  const aiResult = await parseScheduleWithAI(rawText, dataRows);
-  if (aiResult.events.length > 0) {
-    return aiResult.events;
+  const agenticEvents = await runAgenticFormatAdapter(rawText, dataRows);
+  if (agenticEvents.length > 0) {
+    return agenticEvents;
   }
 
   return parseExcel(base64Content);

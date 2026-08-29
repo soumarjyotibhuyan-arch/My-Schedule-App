@@ -760,12 +760,23 @@ function formatDateHeader(dateStr?: string): string {
                           lastDateHeader = dateHeaderStr;
                         }
 
+                        const isToday = event.date === realTimeCtx.todayStr;
+                        const isFuture = event.date && event.date > realTimeCtx.todayStr;
+
                         return (
                           <React.Fragment key={event.id}>
                             {renderDateHeader && (
-                              <View style={[styles.dateHeaderBanner, { backgroundColor: theme.backgroundSelected + '15', borderColor: theme.backgroundSelected + '40' }]}>
-                                <Text style={[styles.dateHeaderBannerText, { color: theme.text }]}>
-                                  📅 {dateHeaderStr}
+                              <View style={[
+                                styles.dateHeaderBanner, 
+                                isToday 
+                                  ? { backgroundColor: '#34C75915', borderColor: '#34C75960' }
+                                  : { backgroundColor: theme.backgroundSelected + '15', borderColor: theme.backgroundSelected + '40' }
+                              ]}>
+                                <Text style={[
+                                  styles.dateHeaderBannerText, 
+                                  { color: isToday ? '#34C759' : theme.text }
+                                ]}>
+                                  {isToday ? `⚡ TODAY — ${dateHeaderStr}` : isFuture ? `📅 UPCOMING — ${dateHeaderStr}` : `🧹 PAST — ${dateHeaderStr}`}
                                 </Text>
                               </View>
                             )}

@@ -12,12 +12,12 @@ const DAYS_MAP: Record<string, number> = {
   sunday: 7, sun: 7
 };
 
-import { parseScheduleWithAI } from './aiParser';
+import { runAgenticFormatAdapter } from './agenticPipeline';
 
 export async function parsePDFTextAsync(text: string): Promise<ScheduleEvent[]> {
-  const aiResult = await parseScheduleWithAI(text);
-  if (aiResult.events.length > 0) {
-    return aiResult.events;
+  const agenticEvents = await runAgenticFormatAdapter(text);
+  if (agenticEvents.length > 0) {
+    return agenticEvents;
   }
   return parsePDFText(text);
 }

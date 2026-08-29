@@ -13,7 +13,7 @@ const DAYS_MAP: Record<string, number> = {
   sunday: 7, sun: 7
 };
 
-import { parseScheduleWithAI } from './aiParser';
+import { runAgenticFormatAdapter } from './agenticPipeline';
 
 export async function parseCSVAsync(csvContent: string): Promise<ScheduleEvent[]> {
   const parsed = Papa.parse(csvContent, {
@@ -22,9 +22,9 @@ export async function parseCSVAsync(csvContent: string): Promise<ScheduleEvent[]
   }) as any;
   const dataRows: any[][] = parsed.data || [];
 
-  const aiResult = await parseScheduleWithAI(csvContent, dataRows);
-  if (aiResult.events.length > 0) {
-    return aiResult.events;
+  const agenticEvents = await runAgenticFormatAdapter(csvContent, dataRows);
+  if (agenticEvents.length > 0) {
+    return agenticEvents;
   }
 
   return parseCSV(csvContent);
