@@ -16,6 +16,14 @@ export default function TabLayout() {
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
   }, []);
 
   return (

@@ -213,6 +213,36 @@ export async function scheduleAllEvents(events: ScheduleEvent[]): Promise<number
   return scheduledCount;
 }
 
+function triggerWebNotification(title: string, options: any): void {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (window.Notification.permission !== 'granted') return;
+
+  const finalOptions = {
+    icon: '/icon.png',
+    badge: '/icon.png',
+    vibrate: [200, 100, 200],
+    ...options,
+  };
+
+  if ('serviceWorker' in navigator && navigator.serviceWorker) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.showNotification(title, finalOptions).catch(() => {
+        try {
+          currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
+        } catch (e) {}
+      });
+    }).catch(() => {
+      try {
+        currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
+      } catch (e) {}
+    });
+  } else {
+    try {
+      currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
+    } catch (e) {}
+  }
+}
+
 // Live Dynamic Web/Desktop Notification Sync Function
 // Called on live ticks to display and sustain sticky notifications during active class sessions
 export function updateLiveNotificationState(
@@ -233,11 +263,11 @@ export function updateLiveNotificationState(
       }
 
       const timeRange = ongoingEvent.rawTime || `${ongoingEvent.time} - ${getFormattedEndTime(ongoingEvent.time)}`;
-      currentActiveWebNotification = new (window as any).Notification(`🟢 LIVE NOW: ${ongoingEvent.title}`, {
+      triggerWebNotification(`🟢 LIVE NOW: ${ongoingEvent.title}`, {
         body: `⏰ Active Time: ${timeRange}\n📍 Location: ${ongoingEvent.venue || 'Campus Classroom'}\n⚡ Status: Currently in progress until class ends.`,
         tag: 'schedule-sync-live-status',
         renotify: true,
-        requireInteraction: true, // Keeps sticky live notification visible until class ends
+        requireInteraction: true,
       });
     }
   } 
@@ -250,7 +280,7 @@ export function updateLiveNotificationState(
         try { currentActiveWebNotification.close(); } catch (e) {}
       }
 
-      currentActiveWebNotification = new (window as any).Notification(`⚡ NEXT CLASS UP: ${nextUpEvent.title}`, {
+      triggerWebNotification(`⚡ NEXT CLASS UP: ${nextUpEvent.title}`, {
         body: `⏰ Scheduled at ${nextUpEvent.time}${nextUpEvent.venue ? ` in ${nextUpEvent.venue}` : ''}. Get ready!`,
         tag: 'schedule-sync-live-status',
         renotify: true,
