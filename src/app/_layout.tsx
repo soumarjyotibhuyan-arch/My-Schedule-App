@@ -14,8 +14,9 @@ export default function TabLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Head>
         <title>ScheduleSync - Timetable & Alarm Manager</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
         <meta name="description" content="Smart Schedule & Timetable Sync for Noise Smartwatch and Mobile" />
-        <meta name="theme-color" content="#208AEF" />
+        <meta name="theme-color" content="#FFFBEA" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ScheduleSync" />

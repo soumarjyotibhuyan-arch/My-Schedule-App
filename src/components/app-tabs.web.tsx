@@ -6,7 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+import { Pressable, useColorScheme, View, StyleSheet, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -34,6 +34,8 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const { width } = useWindowDimensions();
+  const isMobile = width < 480;
 
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
@@ -45,6 +47,8 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
               ? isDark ? '#FACC15' : '#FFF384'
               : isDark ? '#1E1B15' : '#FFFFFF',
             borderColor: isDark ? '#FAFAFA' : '#18181B',
+            paddingHorizontal: isMobile ? 8 : 12,
+            paddingVertical: isMobile ? 4 : 6,
           },
         ]}>
         <ThemedText
@@ -53,6 +57,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
             color: isFocused ? '#18181B' : isDark ? '#A1A1AA' : '#52525B',
             fontWeight: isFocused ? '900' : '600',
             fontFamily: 'var(--font-chunko)',
+            fontSize: isMobile ? 11 : 12,
             letterSpacing: 0.5,
           }}>
           {children}
@@ -65,15 +70,20 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const { width } = useWindowDimensions();
+  const isMobile = width < 480;
 
   return (
-    <View {...props} style={styles.tabListContainer}>
+    <View {...props} style={[styles.tabListContainer, { paddingTop: isMobile ? Spacing.two : Spacing.three }]}>
       <View
         style={[
           styles.innerContainer,
           {
             backgroundColor: isDark ? '#1E1B15' : '#FFFFFF',
             borderColor: isDark ? '#FAFAFA' : '#18181B',
+            paddingHorizontal: isMobile ? Spacing.two : Spacing.four,
+            paddingVertical: isMobile ? 6 : Spacing.two,
+            gap: isMobile ? Spacing.one : Spacing.two,
           },
         ]}>
         <ThemedText
@@ -83,12 +93,12 @@ export function CustomTabList(props: TabListProps) {
             {
               fontFamily: 'var(--font-chunko)',
               fontWeight: '900',
-              fontSize: 16,
+              fontSize: isMobile ? 13 : 16,
               letterSpacing: 0.5,
               color: isDark ? '#FAFAFA' : '#18181B',
             },
           ]}>
-          ⚡ SCHEDULE SYNC
+          ⚡ {isMobile ? 'SCHEDULE' : 'SCHEDULE SYNC'}
         </ThemedText>
 
         {props.children}
@@ -101,26 +111,22 @@ const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
     width: '100%',
-    paddingTop: Spacing.three,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     zIndex: 999,
   },
   innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.four,
     borderRadius: 20,
     borderWidth: 2.5,
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,
-    gap: Spacing.two,
     maxWidth: MaxContentWidth,
     elevation: 4,
     shadowColor: '#18181B',
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
   },
@@ -132,8 +138,6 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 1 }],
   },
   tabButtonView: {
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.three,
     borderRadius: 12,
     borderWidth: 2,
     elevation: 2,

@@ -554,9 +554,11 @@ function formatDateHeader(dateStr?: string): string {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Schedule Sync</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Push reminders to your Noise Smartwatch
+            <Text style={[styles.title, { color: theme.text, fontSize: width < 480 ? 24 : 32 }]}>
+              ⚡ SCHEDULE SYNC
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary, fontSize: width < 480 ? 11 : 13 }]}>
+              Push reminders to your Noise Smartwatch & Mobile
             </Text>
           </View>
 
@@ -1124,7 +1126,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   mainScrollContent: {
-    paddingBottom: 100,
+    paddingTop: Platform.OS === 'web' ? 85 : Spacing.two,
+    paddingBottom: 120,
     paddingHorizontal: Spacing.two,
   },
   header: {
