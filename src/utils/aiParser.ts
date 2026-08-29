@@ -109,8 +109,12 @@ Return strictly valid JSON matching this schema:
 `;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         "HTTP-Referer": "https://my-schedule-app-chi.vercel.app/",
@@ -133,6 +137,8 @@ Return strictly valid JSON matching this schema:
         response_format: { type: "json_object" }
       })
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.warn("OpenRouter API returned status:", response.status);

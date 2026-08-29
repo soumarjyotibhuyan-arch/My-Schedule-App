@@ -81,21 +81,25 @@ export async function runAgenticFormatAdapter(
   rawText: string,
   gridRows?: any[][]
 ): Promise<ScheduleEvent[]> {
-  // Phase 1: Try OpenRouter AI Engine
-  const aiResult = await parseScheduleWithAI(rawText, gridRows);
-  let candidateEvents = aiResult.events || [];
+  let gridEvents: ScheduleEvent[] = [];
 
-  // Phase 2: Multidirectional Sequence-Agnostic Grid Matrix Parser (Top-to-Bottom, Left-to-Right, Transposed)
-  if (candidateEvents.length === 0 && gridRows && gridRows.length > 0) {
-    const multiEvents = parseMultidirectionalGrid(gridRows);
-    if (multiEvents && multiEvents.length > 0) {
-      candidateEvents = multiEvents;
-    } else {
-      const gridEvents = parseGridTimetable(gridRows);
-      if (gridEvents && gridEvents.length > 0) {
-        candidateEvents = gridEvents;
-      }
-    }
+  // Phase 1: If 2D Grid Rows exist (CSV/Excel), run complete deterministic & multidirectional parsers first
+  if (gridRows && gridRows.length > 0) {
+    gridEvents = parseGridTimetable(gridRows) || parseMultidirectionalGrid(gridRows) || [];
+  }
+
+  // Phase 2: Try OpenRouter AI Engine
+  const aiResult = await parseScheduleWithAI(rawText, gridRows);
+  const aiEvents = aiResult.events || [];
+
+  // Phase 3: Choose the engine that extracted the highest number of events (preventing LLM truncation)
+  let candidateEvents: ScheduleEvent[] = [];
+  if (gridEvents.length >= aiEvents.length && gridEvents.length > 0) {
+    candidateEvents = gridEvents;
+  } else if (aiEvents.length > 0) {
+    candidateEvents = aiEvents;
+  } else {
+    candidateEvents = gridEvents;
   }
 
   // Phase 3: Behavioral Science Heuristics Normalization & Enhancement Pass
