@@ -82,10 +82,11 @@ ${rawText.slice(0, 10000)}
 """
 
 REQUIREMENTS:
-1. Extract ALL scheduled events. Include exact Date (format YYYY-MM-DD e.g. "2026-07-13", "2026-09-02"), Day of Week (1=Monday ... 7=Sunday), 24-hour Start Time (HH:MM e.g. "09:00", "10:00", "14:00"), Course Title, Instructor/Faculty, and Room Venue.
+1. Extract ALL scheduled events. Include exact Date (format YYYY-MM-DD e.g. "2026-07-13", "2026-09-02"), Day of Week (1=Monday ... 7=Sunday), 24-hour Start Time (HH:MM e.g. "09:00", "10:00", "11:00", "13:30", "14:00", "14:30"), Course Title, Instructor/Faculty, and Room Venue.
 2. If the date is given as "13 July", "14 July", "2 September", assume year 2026. Format cleanly as "YYYY-MM-DD".
 3. Categorize each event into one of: 'Deep Work', 'Collaborative', 'Administrative', or 'Wrap-up'.
 4. Do NOT assume weekly recurring loops. Every single entry MUST be treated as an exact-date, non-repeating routine event. Preserve all future dates.
+5. CRITICAL TIMING RULE: Determine session start times accurately! Column 1 (09.00 AM - 11.00 AM) sessions start at 09:00 (or inline time like 09:15, 09:30). Column 2 (11.00 AM - 01.00 PM) sessions start at 11:00 (or inline time like 10:00, 11:00). Column 3 (02.00 PM - 04.00 PM) sessions start at 14:00 (or inline time like 13:30, 14:30, 14:45). Never default every class to 09:00 AM.
 
 Return strictly valid JSON matching this schema:
 {

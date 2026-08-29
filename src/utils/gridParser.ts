@@ -13,27 +13,39 @@ const DAYS_MAP: Record<string, number> = {
 };
 
 function parseTimeTo24h(timeStr: string): string | null {
+  if (!timeStr) return null;
   const cleaned = timeStr.trim().toLowerCase();
+  
   const match = cleaned.match(/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?\b/);
-  if (!match) {
-    const singleMatch = cleaned.match(/\b(\d{1,2})\s*(am|pm)\b/);
-    if (singleMatch) {
-      let hours = parseInt(singleMatch[1], 10);
-      const ampm = singleMatch[2];
-      if (ampm === 'pm' && hours < 12) hours += 12;
-      if (ampm === 'am' && hours === 12) hours = 0;
-      return `${String(hours).padStart(2, '0')}:00`;
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3];
+
+    if (ampm === 'pm' && hours < 12) hours += 12;
+    else if (ampm === 'am' && hours === 12) hours = 0;
+    else if (!ampm) {
+      if (hours >= 1 && hours <= 6) hours += 12;
     }
-    return null;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   }
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const ampm = match[3];
-  
-  if (ampm === 'pm' && hours < 12) hours += 12;
-  if (ampm === 'am' && hours === 12) hours = 0;
-  
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+  const singleMatch = cleaned.match(/\b(\d{1,2})\s*(am|pm)?\b/);
+  if (singleMatch) {
+    let hours = parseInt(singleMatch[1], 10);
+    const ampm = singleMatch[2];
+
+    if (ampm === 'pm' && hours < 12) hours += 12;
+    else if (ampm === 'am' && hours === 12) hours = 0;
+    else if (!ampm) {
+      if (hours >= 1 && hours <= 6) hours += 12;
+    }
+
+    return `${String(hours).padStart(2, '0')}:00`;
+  }
+
+  return null;
 }
 
 const MONTH_MAP: Record<string, number> = {
@@ -272,16 +284,33 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
 
         const combinedText = `${rawText} ${partnerText}`.trim();
         const isHoliday = rawText.toLowerCase().includes('holiday') || rawText.toLowerCase().includes('independance');
-        const inTextMatch = rawText.match(/\b(\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?)\b/i);
-
         let eventRawTime = defaultTime;
-        if (inTextMatch) {
-          eventRawTime = inTextMatch[1];
-        }
+        let formattedTime = "09:00";
 
-        const timeParts = eventRawTime.split(/(?:to|-)/i);
-        const startTimeRaw = timeParts[0] || '09:00';
-        const formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
+        const rangeRegex = /\b(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)\s*(?:to|-)\s*(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)\b/i;
+        const rangeMatch = combinedText.match(rangeRegex);
+
+        if (rangeMatch) {
+          let startRaw = rangeMatch[1].trim();
+          const endRaw = rangeMatch[2].trim();
+          const endAmPm = endRaw.match(/(am|pm)/i);
+          if (!/(am|pm)/i.test(startRaw) && endAmPm) {
+            startRaw += ` ${endAmPm[1]}`;
+          }
+          eventRawTime = `${startRaw} - ${endRaw}`;
+          formattedTime = parseTimeTo24h(startRaw) || parseTimeTo24h(defaultTime) || "09:00";
+        } else {
+          const singleRegex = /\b(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm))\b/i;
+          const singleMatch = combinedText.match(singleRegex);
+          if (singleMatch) {
+            eventRawTime = singleMatch[1];
+            formattedTime = parseTimeTo24h(singleMatch[1]) || parseTimeTo24h(defaultTime) || "09:00";
+          } else {
+            const timeParts = defaultTime.split(/(?:to|-)/i);
+            const startTimeRaw = timeParts[0] || '09:00';
+            formattedTime = parseTimeTo24h(startTimeRaw) || '09:00';
+          }
+        }
 
         // Extract Venue
         let venue: string | undefined;
