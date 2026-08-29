@@ -22,6 +22,7 @@ import {
   requestNotificationPermissions,
   scheduleAllEvents,
   cancelAllNotifications,
+  updateLiveNotificationState,
 } from '../utils/notifier';
 import CalendarPreview from '../components/CalendarPreview';
 import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
@@ -224,13 +225,19 @@ export default function HomeScreen() {
   const [realTimeCtx, setRealTimeCtx] = useState<RealTimeContext>(getRealTimeContext());
   const rollingDays = getRollingDays();
 
-  // 60-second live real-time tick timer
+  // 15-second live real-time tick timer & Live Notification Sync
   useEffect(() => {
+    const bucketedNow = bucketScheduleEvents(events, realTimeCtx);
+    updateLiveNotificationState(bucketedNow.ongoingEvent, bucketedNow.nextUpEvent);
+
     const timer = setInterval(() => {
-      setRealTimeCtx(getRealTimeContext());
-    }, 60000);
+      const newCtx = getRealTimeContext();
+      setRealTimeCtx(newCtx);
+      const updatedBucketed = bucketScheduleEvents(events, newCtx);
+      updateLiveNotificationState(updatedBucketed.ongoingEvent, updatedBucketed.nextUpEvent);
+    }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [events]);
 
   const bucketed = bucketScheduleEvents(events, realTimeCtx);
 
