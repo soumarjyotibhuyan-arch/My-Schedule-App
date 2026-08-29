@@ -2,6 +2,13 @@
   "short_name": "RoutineSync",
   "name": "RoutineSync - Timetable & Alarm Manager",
   "description": "Smart Routine & Timetable Sync for Noise Smartwatch and Mobile",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFBEA",
+  "theme_color": "#FFF384",
   "icons": [
     {
       "src": "/favicon.png",
@@ -12,18 +19,25 @@
       "src": "/icon.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#FFFBEA",
-  "theme_color": "#FFF384",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

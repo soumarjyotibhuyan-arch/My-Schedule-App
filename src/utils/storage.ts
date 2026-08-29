@@ -17,7 +17,9 @@ export async function saveEvents(events: ScheduleEvent[]): Promise<void> {
 export async function getEvents(): Promise<ScheduleEvent[]> {
   try {
     const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-    return jsonValue != null ? JSON.parse(jsonValue) : [];
+    if (!jsonValue) return [];
+    const parsed = JSON.parse(jsonValue);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.error('Error loading events from AsyncStorage:', e);
     return [];
