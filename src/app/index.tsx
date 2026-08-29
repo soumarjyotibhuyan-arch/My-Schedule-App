@@ -1013,9 +1013,10 @@ function formatDateHeader(dateStr?: string): string {
             : pendingEvents;
           const pastEventsCount = pendingEvents.length - activePendingEvents.length;
 
-          const pendingDates = Array.from(new Set(activePendingEvents.map(e => e.date).filter(Boolean))).sort();
-          const startDateLabel = pendingDates[0] || 'Today';
-          const endDateLabel = pendingDates.length > 1 ? pendingDates[pendingDates.length - 1] : startDateLabel;
+          // Compute true date range across the entire uploaded schedule (from first date to last date)
+          const allUploadedDates = Array.from(new Set(pendingEvents.map(e => e.date).filter((d): d is string => Boolean(d)))).sort();
+          const startDateLabel = allUploadedDates[0] || getTodayDateString();
+          const endDateLabel = allUploadedDates.length > 0 ? allUploadedDates[allUploadedDates.length - 1] : startDateLabel;
 
           return (
             <View style={styles.modalOverlay}>
