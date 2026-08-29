@@ -85,7 +85,7 @@ REQUIREMENTS:
 1. Extract ALL scheduled events. Include exact Date (format YYYY-MM-DD e.g. "2026-07-13", "2026-09-02"), Day of Week (1=Monday ... 7=Sunday), 24-hour Start Time (HH:MM e.g. "09:00", "10:00", "14:00"), Course Title, Instructor/Faculty, and Room Venue.
 2. If the date is given as "13 July", "14 July", "2 September", assume year 2026. Format cleanly as "YYYY-MM-DD".
 3. Categorize each event into one of: 'Deep Work', 'Collaborative', 'Administrative', or 'Wrap-up'.
-4. Do NOT drop any future dates. Preserve the full up-to-date schedule.
+4. Do NOT assume weekly recurring loops. Every single entry MUST be treated as an exact-date, non-repeating routine event. Preserve all future dates.
 
 Return strictly valid JSON matching this schema:
 {

@@ -119,34 +119,6 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
         });
         return id;
       }
-      return null;
-    }
-
-    // 2. Day-of-week non-repeating fallback (only if no explicit date is provided)
-    if (event.dayOfWeek !== undefined) {
-      let targetWeekday = getExpoWeekday(event.dayOfWeek);
-
-      if (offsetDays < 0) {
-        targetWeekday = targetWeekday - 1;
-        if (targetWeekday < 1) targetWeekday = 7;
-      }
-
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `⏰ Upcoming Class: ${event.title}`,
-          body: event.description || `${event.title} starts at ${event.time}${event.venue ? ` (${event.venue})` : ''}`,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-          weekday: targetWeekday,
-          hour,
-          minute,
-          repeats: false, // Non-repeating as per explicit user directive
-        },
-      });
-      return id;
     }
   } catch (error) {
     console.error('Error scheduling notification:', error);
