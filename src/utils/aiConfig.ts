@@ -9,5 +9,11 @@ try {
 }
 
 export const OPENROUTER_API_KEY = key;
-export const OPENROUTER_MODEL = "openai/gpt-4o-mini";
-export const OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.3-70b-instruct";
+
+/**
+ * 100% Free Tier AI Models on OpenRouter
+ * - nvidia/nemotron-3.5-lightning:free ($0.00 cost)
+ * - google/gemma-4-31b-it:free ($0.00 cost)
+ */
+export const OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free";
+export const OPENROUTER_FALLBACK_MODEL = "google/gemma-4-31b-it:free";
