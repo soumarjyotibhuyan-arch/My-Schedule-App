@@ -23,12 +23,24 @@
   --spark-card-light: #FFFFFF;
 }
 
-body {
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   font-family: var(--font-display);
   background-color: var(--spark-bg-light);
   color: var(--spark-dark);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root, #__next {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Spark Neo-Brutalist Card Shadow & Hover Interactions */
