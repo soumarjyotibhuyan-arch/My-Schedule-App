@@ -357,11 +357,11 @@ export function parseGridTimetable(rows: any[][]): ScheduleEvent[] | null {
 
         const category = classifyEventCategory(cleanTitle);
 
-        // Deduplication check
+        // Deduplication check: events are only duplicates if they occur on the exact same DATE and TIME
         const isDuplicate = events.some(e => 
-          (e.title.toLowerCase() === cleanTitle.toLowerCase() || e.rawTime === eventRawTime) &&
+          e.title.toLowerCase() === cleanTitle.toLowerCase() &&
           e.time === formattedTime &&
-          (e.date === parsedDateStr || e.dayOfWeek === parsedDayOfWeek)
+          (parsedDateStr ? e.date === parsedDateStr : e.dayOfWeek === parsedDayOfWeek)
         );
 
         if (isDuplicate) return;
