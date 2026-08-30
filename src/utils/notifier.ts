@@ -276,35 +276,64 @@ function triggerWebNotification(title: string, options: any): void {
   if (window.Notification.permission !== 'granted') return;
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '/';
-  const finalOptions = {
-    icon: '/icon.png',
-    badge: '/icon.png',
-    vibrate: [200, 100, 200],
-    data: { url: currentUrl },
-    actions: [
-      { action: 'open', title: '📅 Open RoutineSync' }
-    ],
-    ...options,
-  };
 
+  // PRIMARY: Route notification through active Service Worker via postMessage
+  // This is the only reliable way to show notifications on Android Chrome / iOS Safari PWA
+  if ('serviceWorker' in navigator && navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SHOW_NOTIFICATION',
+      title,
+      options: {
+        body: options.body || '',
+        tag: options.tag || 'routinesync-schedule-alert',
+        requireInteraction: options.requireInteraction || false,
+        dataUrl: currentUrl,
+        renotify: options.renotify !== false,
+      },
+    });
+    return;
+  }
+
+  // FALLBACK: Wait for SW to become active then postMessage
   if ('serviceWorker' in navigator && navigator.serviceWorker) {
     navigator.serviceWorker.ready.then((registration) => {
-      registration.showNotification(title, finalOptions).catch(() => {
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title,
+          options: {
+            body: options.body || '',
+            tag: options.tag || 'routinesync-schedule-alert',
+            requireInteraction: options.requireInteraction || false,
+            dataUrl: currentUrl,
+            renotify: options.renotify !== false,
+          },
+        });
+      } else {
+        // Last resort: desktop browser Notification API only (does not work on mobile Chrome)
         try {
-          currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
+          currentActiveWebNotification = new (window as any).Notification(title, {
+            body: options.body || '',
+            icon: '/icon.png',
+            badge: '/icon.png',
+            tag: options.tag || 'routinesync-schedule-alert',
+          });
         } catch (e) {}
-      });
-    }).catch(() => {
-      try {
-        currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
-      } catch (e) {}
-    });
-  } else {
-    try {
-      currentActiveWebNotification = new (window as any).Notification(title, finalOptions);
-    } catch (e) {}
+      }
+    }).catch(() => {});
+    return;
   }
+
+  // No service worker support — desktop fallback only
+  try {
+    currentActiveWebNotification = new (window as any).Notification(title, {
+      body: options.body || '',
+      icon: '/icon.png',
+      badge: '/icon.png',
+    });
+  } catch (e) {}
 }
+
 
 // Live Dynamic Web/Desktop Notification Sync Function
 // Called on live ticks to display and sustain sticky notifications during active class sessions
