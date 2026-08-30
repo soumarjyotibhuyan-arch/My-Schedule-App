@@ -119,3 +119,11 @@ export function bucketScheduleEvents(
     nextUpEvent,
   };
 }
+
+export function timeToMinutes(timeStr?: string): number {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const hours = parseInt(parts[0] || '0', 10);
+  const minutes = parseInt(parts[1] || '0', 10);
+  return hours * 60 + minutes;
+}

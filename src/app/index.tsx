@@ -30,7 +30,7 @@ import {
 } from '../utils/notifier';
 import CalendarPreview from '../components/CalendarPreview';
 import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
-import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext } from '../utils/dateUtils';
+import { getRealTimeContext, bucketScheduleEvents, getEventRealTimeStatus, RealTimeContext, timeToMinutes } from '../utils/dateUtils';
 import { Colors, Spacing, BottomTabInset, MaxContentWidth, GenZFonts } from '../constants/theme';
 import { useColorScheme } from 'react-native';
 
@@ -689,7 +689,7 @@ function formatDateHeader(dateStr?: string): string {
     const dateB = b.date || '9999-99-99';
     const dateCmp = dateA.localeCompare(dateB);
     if (dateCmp !== 0) return dateCmp;
-    return a.time.localeCompare(b.time);
+    return timeToMinutes(a.time) - timeToMinutes(b.time);
   });
 
   if (declutterEnabled) {
