@@ -71,18 +71,24 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return true;
 }
 
+let activeWebTimers: any[] = [];
+
 // Cancel all scheduled notifications
 export async function cancelAllNotifications(): Promise<void> {
-  if (Platform.OS === 'web') {
-    if (currentActiveWebNotification) {
-      try {
-        currentActiveWebNotification.close();
-      } catch (e) {}
-      currentActiveWebNotification = null;
-    }
-    return;
+  if (currentActiveWebNotification) {
+    try {
+      currentActiveWebNotification.close();
+    } catch (e) {}
+    currentActiveWebNotification = null;
   }
-  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  // Clear all pending web background timers
+  activeWebTimers.forEach(timer => clearTimeout(timer));
+  activeWebTimers = [];
+
+  if (Platform.OS !== 'web') {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
 }
 
 // Helper to format end time (+90 mins)
@@ -112,7 +118,6 @@ function getNextDateForDayOfWeek(dayOfWeek: number, targetHour: number, targetMi
 // Schedule notifications for a single event (Pre-Class Offset, Live Start Alert, and Class Concluded Alert)
 export async function scheduleEventNotification(event: ScheduleEvent): Promise<string[]> {
   const ids: string[] = [];
-  if (Platform.OS === 'web') return ids;
 
   try {
     const [eventHour, eventMinute] = event.time.split(':').map((val: string) => parseInt(val, 10));
@@ -131,7 +136,64 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
     const endDateObj = new Date(startDateObj.getTime() + 90 * 60000);
     const endTimeDisplay = event.rawTime || getFormattedEndTime(event.time);
 
-    // Common notification content configuration compatible with Android channel & NoiseFit smartwatch
+    // WEB / PWA MOBILE SCHEDULING PIPELINE
+    if (Platform.OS === 'web') {
+      const nowMs = Date.now();
+
+      // 1. Pre-Class Offset Reminder
+      const reminderTimeMs = startDateObj.getTime() - event.reminderMinutesBefore * 60000;
+      if (reminderTimeMs > nowMs) {
+        const delayMs = reminderTimeMs - nowMs;
+        if (delayMs <= 2147483647) {
+          const timer = setTimeout(() => {
+            triggerWebNotification(`⏰ Upcoming Class (${event.reminderMinutesBefore}m prior): ${event.title}`, {
+              body: `${event.title} starts at ${event.time}${event.venue ? ` in ${event.venue}` : ''}.`,
+              tag: `reminder-${event.id || event.title}`,
+              renotify: true,
+            });
+          }, delayMs);
+          activeWebTimers.push(timer);
+          ids.push(`web-reminder-${event.id || event.title}`);
+        }
+      }
+
+      // 2. Live Class Start Alert
+      if (startDateObj.getTime() > nowMs) {
+        const delayMs = startDateObj.getTime() - nowMs;
+        if (delayMs <= 2147483647) {
+          const timer = setTimeout(() => {
+            triggerWebNotification(`🟢 LIVE NOW: ${event.title}`, {
+              body: `Class is currently in session (${endTimeDisplay})${event.venue ? ` at ${event.venue}` : ''}.`,
+              tag: `start-${event.id || event.title}`,
+              renotify: true,
+              requireInteraction: true,
+            });
+          }, delayMs);
+          activeWebTimers.push(timer);
+          ids.push(`web-start-${event.id || event.title}`);
+        }
+      }
+
+      // 3. Class Concluded Alert
+      if (endDateObj.getTime() > nowMs) {
+        const delayMs = endDateObj.getTime() - nowMs;
+        if (delayMs <= 2147483647) {
+          const timer = setTimeout(() => {
+            triggerWebNotification(`🏁 CLASS CONCLUDED: ${event.title}`, {
+              body: `${event.title} has finished. Checking next scheduled class routine.`,
+              tag: `end-${event.id || event.title}`,
+              renotify: true,
+            });
+          }, delayMs);
+          activeWebTimers.push(timer);
+          ids.push(`web-end-${event.id || event.title}`);
+        }
+      }
+
+      return ids;
+    }
+
+    // NATIVE PLATFORMS (ANDROID / IOS)
     const baseContent = {
       sound: 'default',
       priority: Notifications.AndroidNotificationPriority.MAX,
@@ -156,7 +218,7 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
       ids.push(reminderId);
     }
 
-    // 2. Live Class Start Alert (Triggers exact class start time)
+    // 2. Live Class Start Alert
     if (startDateObj.getTime() > Date.now()) {
       const liveId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -172,7 +234,7 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
       ids.push(liveId);
     }
 
-    // 3. Class Concluded Alert (Triggers exact class end time to notify completion)
+    // 3. Class Concluded Alert
     if (endDateObj.getTime() > Date.now()) {
       const endId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -197,10 +259,6 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
 // Bulk schedule all events
 export async function scheduleAllEvents(events: ScheduleEvent[]): Promise<number> {
   await cancelAllNotifications();
-
-  if (Platform.OS === 'web') {
-    return events.length;
-  }
 
   let scheduledCount = 0;
   for (const event of events) {
