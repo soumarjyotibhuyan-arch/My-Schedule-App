@@ -29,7 +29,10 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     tag: data.tag || 'routinesync-notification',
     renotify: true,
-    data: data.url || '/'
+    data: { url: data.url || '/' },
+    actions: [
+      { action: 'open', title: '📅 Open RoutineSync' }
+    ]
   };
 
   event.waitUntil(
@@ -40,7 +43,7 @@ self.addEventListener('push', (event) => {
 // Handle Notification Click Action (focus or open RoutineSync PWA)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data || '/';
+  const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

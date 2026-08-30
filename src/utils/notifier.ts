@@ -275,10 +275,15 @@ function triggerWebNotification(title: string, options: any): void {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (window.Notification.permission !== 'granted') return;
 
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '/';
   const finalOptions = {
     icon: '/icon.png',
     badge: '/icon.png',
     vibrate: [200, 100, 200],
+    data: { url: currentUrl },
+    actions: [
+      { action: 'open', title: '📅 Open RoutineSync' }
+    ],
     ...options,
   };
 
