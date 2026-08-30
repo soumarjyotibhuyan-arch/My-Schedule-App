@@ -297,3 +297,32 @@ export function updateLiveNotificationState(
     lastNotifiedEventId = null;
   }
 }
+
+// Instant Test Notification function to verify hardware sound, vibration, and system alerts
+export async function sendInstantTestNotification(): Promise<boolean> {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return false;
+
+  if (Platform.OS === 'web') {
+    triggerWebNotification('🔔 RoutineSync Test Notification', {
+      body: '🎉 Notifications are working perfectly! Live class reminders will alert on your phone and smartwatch.',
+      tag: 'routinesync-test-notification',
+      renotify: true,
+      requireInteraction: false,
+    });
+    return true;
+  } else {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🔔 RoutineSync Test Notification',
+        body: '🎉 Notifications are working perfectly! Live class reminders will alert on your phone and smartwatch.',
+        sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        vibrate: [0, 250, 250, 250],
+        ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
+      },
+      trigger: null,
+    });
+    return true;
+  }
+}

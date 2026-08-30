@@ -26,6 +26,7 @@ import {
   scheduleAllEvents,
   cancelAllNotifications,
   updateLiveNotificationState,
+  sendInstantTestNotification,
 } from '../utils/notifier';
 import CalendarPreview from '../components/CalendarPreview';
 import { openInGoogleCalendar, downloadGoogleCalendarICS, openInGoogleMaps } from '../utils/googleServices';
@@ -632,6 +633,15 @@ export default function HomeScreen() {
     showAlert('Application Reset', 'All scheduled alarms and configurations have been successfully reset.');
   };
 
+  const handleSendTestNotification = async () => {
+    const success = await sendInstantTestNotification();
+    if (success) {
+      showAlert('Notification Sent', 'A test alert has been dispatched! Check your phone status bar, lock screen, or smartwatch.');
+    } else {
+      showAlert('Permission Required', 'Notifications are currently disabled. Tap the warning banner above to grant permission.');
+    }
+  };
+
   const handleDeleteEvent = async (id: string) => {
     const updated = events.filter(e => e.id !== id);
     setEvents(updated);
@@ -811,15 +821,28 @@ function formatDateHeader(dateStr?: string): string {
                   ))}
                 </View>
                 
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.resetAppButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleClearSchedule}
-                >
-                  <Text style={styles.resetAppButtonText}>🔄 Reset Application Alarms & Settings</Text>
-                </Pressable>
+                <View style={{ gap: 8, marginTop: 12 }}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.resetAppButton,
+                      { backgroundColor: '#C084FC' },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleSendTestNotification}
+                  >
+                    <Text style={[styles.resetAppButtonText, { color: '#FFFFFF' }]}>🧪 Send Instant Test Notification</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.resetAppButton,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleClearSchedule}
+                  >
+                    <Text style={styles.resetAppButtonText}>🔄 Reset Application Alarms & Settings</Text>
+                  </Pressable>
+                </View>
               </View>
 
               {/* Mobile Calendar Preview (below uploader) */}
