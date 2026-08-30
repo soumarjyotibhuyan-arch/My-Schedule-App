@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { ScheduleEvent } from '../types';
 
-// Set up default notification handler for native platforms (Foreground + Background)
+// ─── NATIVE NOTIFICATION HANDLER ─────────────────────────────────────────────
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -15,9 +15,20 @@ if (Platform.OS !== 'web') {
   });
 }
 
+// ─── VAPID PUBLIC KEY ─────────────────────────────────────────────────────────
+// This key allows the browser to verify push messages came from our server
+const VAPID_PUBLIC_KEY = 'BKper_4FWbjBdzBkxrRjAZA8QPQHhE0QFAnBiGOY-qnD68CX6PDVxD5yxGqOVxqmEeMh2eiu9FpfOb1Xle7ni98';
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from(Array.from(rawData).map((c) => c.charCodeAt(0)));
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let lastNotifiedEventId: string | null = null;
-let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let pushSubscription: PushSubscription | null = null;
 
 // ─── PERMISSIONS ──────────────────────────────────────────────────────────────
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -26,25 +37,21 @@ export async function requestNotificationPermissions(): Promise<boolean> {
       if (typeof window === 'undefined' || !('Notification' in window)) return false;
       if (window.Notification.permission === 'granted') return true;
       if (window.Notification.permission === 'denied') return false;
-
       const status = await window.Notification.requestPermission().catch(() => 'default');
       return status === 'granted';
-    } catch (e) {
+    } catch {
       return false;
     }
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-
   if (finalStatus !== 'granted') return false;
 
-  // Android notification channel for high-priority alerts & NoiseFit smartwatch
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('schedule-alerts', {
       name: 'RoutineSync Timetable Alarms',
@@ -58,8 +65,73 @@ export async function requestNotificationPermissions(): Promise<boolean> {
       showBadge: true,
     });
   }
-
   return true;
+}
+
+// ─── WEB PUSH SUBSCRIPTION ───────────────────────────────────────────────────
+/**
+ * Subscribe to Web Push via VAPID.
+ * Returns the PushSubscription or null if unavailable/denied.
+ */
+export async function subscribeToPush(): Promise<PushSubscription | null> {
+  if (Platform.OS !== 'web') return null;
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg.pushManager) return null;
+
+    // Check existing subscription first
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      pushSubscription = existing;
+      return existing;
+    }
+
+    // Create new subscription
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true, // Chrome requires this to be true
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+    });
+
+    pushSubscription = sub;
+    return sub;
+  } catch (err) {
+    console.warn('[Push] Subscribe error:', err);
+    return null;
+  }
+}
+
+/**
+ * Save the push subscription + events to Vercel so the cron job can send pushes
+ * even when the app is completely closed.
+ */
+export async function savePushSubscriptionToServer(
+  sub: PushSubscription,
+  events: ScheduleEvent[]
+): Promise<boolean> {
+  try {
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: sub.toJSON(),
+        events: events.map((e) => ({
+          id: e.id,
+          title: e.title,
+          time: e.time,
+          date: e.date,
+          dayOfWeek: e.dayOfWeek,
+          venue: e.venue,
+          reminderMinutesBefore: e.reminderMinutesBefore || 5,
+        })),
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[Push] Save subscription error:', err);
+    return false;
+  }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -67,8 +139,8 @@ function getFormattedEndTime(timeStr: string): string {
   const parts = timeStr.split(':');
   const h = parseInt(parts[0] || '0', 10);
   const m = parseInt(parts[1] || '0', 10);
-  const totalMins = h * 60 + m + 90;
-  return `${String(Math.floor(totalMins / 60) % 24).padStart(2, '0')}:${String(totalMins % 60).padStart(2, '0')}`;
+  const total = h * 60 + m + 90;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function getNextDateForDayOfWeek(dayOfWeek: number, h: number, m: number): Date {
@@ -81,32 +153,12 @@ function getNextDateForDayOfWeek(dayOfWeek: number, h: number, m: number): Date 
 }
 
 // ─── SW COMMUNICATION ─────────────────────────────────────────────────────────
-/**
- * Get the active Service Worker registration (waits for ready state).
- * Returns null if SW is not available.
- */
-async function getActiveSW(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    return reg;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Post a message to the active Service Worker controller.
- * Falls back to registration.active if controller is null.
- */
 async function postToSW(message: object): Promise<boolean> {
   try {
-    const reg = await getActiveSW();
-    if (!reg) return false;
-
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
+    const reg = await navigator.serviceWorker.ready;
     const target = navigator.serviceWorker.controller || reg.active || reg.waiting;
     if (!target) return false;
-
     target.postMessage(message);
     return true;
   } catch {
@@ -114,63 +166,21 @@ async function postToSW(message: object): Promise<boolean> {
   }
 }
 
-/**
- * Show an immediate notification via the Service Worker.
- * This is the ONLY reliable way to show notifications on Android Chrome & iOS Safari PWA.
- */
 async function showNotificationViaSW(title: string, options: {
-  body: string;
-  tag: string;
-  requireInteraction?: boolean;
-  renotify?: boolean;
+  body: string; tag: string; requireInteraction?: boolean; renotify?: boolean;
 }): Promise<void> {
-  const sent = await postToSW({
-    type: 'SHOW_NOTIFICATION',
-    title,
-    options: {
-      body: options.body,
-      tag: options.tag,
-      requireInteraction: options.requireInteraction || false,
-      renotify: options.renotify !== false,
-    },
-  });
-
-  // Desktop-only fallback (does NOT work on mobile Chrome or iOS)
-  if (!sent && typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
+  const sent = await postToSW({ type: 'SHOW_NOTIFICATION', title, options });
+  // Desktop fallback (not mobile Chrome)
+  if (!sent && typeof window !== 'undefined' && 'Notification' in window &&
+      window.Notification.permission === 'granted') {
     try {
       new (window as any).Notification(title, {
-        body: options.body,
-        icon: '/icon.png',
-        badge: '/icon.png',
-        tag: options.tag,
+        body: options.body, icon: '/icon.png', badge: '/icon.png', tag: options.tag,
       });
     } catch {}
   }
 }
 
-/**
- * Send the full list of upcoming alarms to the Service Worker alarm store.
- * The SW checks these every 30 seconds and fires them at the right time.
- * This survives tab/app switching (but not full browser close).
- */
-async function scheduleAlarmsInSW(alarms: Array<{
-  fireAt: number;
-  title: string;
-  body: string;
-  tag: string;
-  requireInteraction?: boolean;
-}>): Promise<void> {
-  await postToSW({ type: 'SCHEDULE_ALARM', alarms });
-}
-
-async function cancelAlarmsInSW(): Promise<void> {
-  await postToSW({ type: 'CANCEL_ALARMS' });
-}
-
-/**
- * Send a heartbeat TICK to the SW so it checks alarms immediately.
- * Called every 15 seconds from the live ticker in index.tsx via updateLiveNotificationState.
- */
 export async function tickSWAlarmCheck(): Promise<void> {
   if (Platform.OS !== 'web') return;
   await postToSW({ type: 'TICK' });
@@ -179,11 +189,7 @@ export async function tickSWAlarmCheck(): Promise<void> {
 // ─── CANCEL ALL ───────────────────────────────────────────────────────────────
 export async function cancelAllNotifications(): Promise<void> {
   if (Platform.OS === 'web') {
-    await cancelAlarmsInSW();
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
-    }
+    await postToSW({ type: 'CANCEL_ALARMS' });
     return;
   }
   await Notifications.cancelAllScheduledNotificationsAsync();
@@ -205,65 +211,41 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
 
     if (!startDateObj) return ids;
 
-    // Native platforms — use expo-notifications scheduled alarms
+    const endDateObj = new Date(startDateObj.getTime() + 90 * 60000);
+    const endTimeDisplay = event.rawTime || getFormattedEndTime(event.time);
+
+    // Native (Android/iOS) — expo-notifications handles everything
     if (Platform.OS !== 'web') {
-      const endDateObj = new Date(startDateObj.getTime() + 90 * 60000);
-      const endTimeDisplay = event.rawTime || getFormattedEndTime(event.time);
-      const baseContent = {
-        sound: 'default',
-        priority: Notifications.AndroidNotificationPriority.MAX,
+      const base = {
+        sound: 'default', priority: Notifications.AndroidNotificationPriority.MAX,
         vibrate: [0, 250, 250, 250],
         ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}),
       };
-
-      const reminderTimeMs = startDateObj.getTime() - event.reminderMinutesBefore * 60000;
-      if (reminderTimeMs > Date.now()) {
-        const id = await Notifications.scheduleNotificationAsync({
-          content: {
-            ...baseContent,
-            title: `⏰ Class in ${event.reminderMinutesBefore}m: ${event.title}`,
-            body: `${event.title} starts at ${event.time}${event.venue ? ` in ${event.venue}` : ''}.`,
-          },
-          trigger: { date: reminderTimeMs, ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}) } as any,
-        });
-        ids.push(id);
+      const reminderMs = startDateObj.getTime() - (event.reminderMinutesBefore || 5) * 60000;
+      if (reminderMs > Date.now()) {
+        ids.push(await Notifications.scheduleNotificationAsync({
+          content: { ...base, title: `⏰ Class in ${event.reminderMinutesBefore}m: ${event.title}`, body: `${event.title} at ${event.time}${event.venue ? ` · ${event.venue}` : ''}` },
+          trigger: { date: reminderMs, ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}) } as any,
+        }));
       }
       if (startDateObj.getTime() > Date.now()) {
-        const id = await Notifications.scheduleNotificationAsync({
-          content: {
-            ...baseContent,
-            title: `🟢 LIVE NOW: ${event.title}`,
-            body: `Class in session until ${endTimeDisplay}${event.venue ? ` at ${event.venue}` : ''}.`,
-          },
+        ids.push(await Notifications.scheduleNotificationAsync({
+          content: { ...base, title: `🟢 Class starting: ${event.title}`, body: `Starting now${event.venue ? ` at ${event.venue}` : ''} until ${endTimeDisplay}.` },
           trigger: { date: startDateObj.getTime(), ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}) } as any,
-        });
-        ids.push(id);
-      }
-      if (endDateObj.getTime() > Date.now()) {
-        const id = await Notifications.scheduleNotificationAsync({
-          content: {
-            ...baseContent,
-            title: `🏁 Class Done: ${event.title}`,
-            body: `${event.title} has finished.`,
-          },
-          trigger: { date: endDateObj.getTime(), ...(Platform.OS === 'android' ? { channelId: 'schedule-alerts' } : {}) } as any,
-        });
-        ids.push(id);
+        }));
       }
       return ids;
     }
 
-    // Web / PWA — return alarm descriptors (collected in scheduleAllEvents)
-    const endDateObj = new Date(startDateObj.getTime() + 90 * 60000);
-    const endTimeDisplay = event.rawTime || getFormattedEndTime(event.time);
+    // Web / PWA — return serialized alarm descriptors (batched in scheduleAllEvents)
     const nowMs = Date.now();
+    const reminderMs = startDateObj.getTime() - (event.reminderMinutesBefore || 5) * 60000;
 
-    const reminderTimeMs = startDateObj.getTime() - event.reminderMinutesBefore * 60000;
-    if (reminderTimeMs > nowMs) {
+    if (reminderMs > nowMs) {
       ids.push(JSON.stringify({
-        fireAt: reminderTimeMs,
-        title: `⏰ Class in ${event.reminderMinutesBefore}m: ${event.title}`,
-        body: `${event.title} starts at ${event.time}${event.venue ? ` in ${event.venue}` : ''}.`,
+        fireAt: reminderMs,
+        title: `⏰ Class in ${event.reminderMinutesBefore || 5}m: ${event.title}`,
+        body: `${event.title} at ${event.time}${event.venue ? ` · ${event.venue}` : ''}`.slice(0, 120),
         tag: `reminder-${event.id || event.title}`,
         requireInteraction: false,
       }));
@@ -271,8 +253,8 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
     if (startDateObj.getTime() > nowMs) {
       ids.push(JSON.stringify({
         fireAt: startDateObj.getTime(),
-        title: `🟢 LIVE NOW: ${event.title}`,
-        body: `Class in session until ${endTimeDisplay}${event.venue ? ` at ${event.venue}` : ''}.`,
+        title: `🟢 Class starting: ${event.title}`,
+        body: `Starting now${event.venue ? ` at ${event.venue}` : ''} until ${endTimeDisplay}.`.slice(0, 120),
         tag: `start-${event.id || event.title}`,
         requireInteraction: true,
       }));
@@ -280,14 +262,14 @@ export async function scheduleEventNotification(event: ScheduleEvent): Promise<s
     if (endDateObj.getTime() > nowMs) {
       ids.push(JSON.stringify({
         fireAt: endDateObj.getTime(),
-        title: `🏁 Class Done: ${event.title}`,
+        title: `🏁 Class done: ${event.title}`,
         body: `${event.title} has finished.`,
         tag: `end-${event.id || event.title}`,
         requireInteraction: false,
       }));
     }
   } catch (err) {
-    console.error('scheduleEventNotification error:', err);
+    console.error('[notifier] scheduleEventNotification error:', err);
   }
   return ids;
 }
@@ -305,7 +287,7 @@ export async function scheduleAllEvents(events: ScheduleEvent[]): Promise<number
     return count;
   }
 
-  // Web: collect all alarm descriptors then send as one batch to SW
+  // Web: collect alarm descriptors → send as one batch to SW IndexedDB
   const alarms: any[] = [];
   for (const event of events) {
     const ids = await scheduleEventNotification(event);
@@ -315,7 +297,17 @@ export async function scheduleAllEvents(events: ScheduleEvent[]): Promise<number
   }
 
   if (alarms.length > 0) {
-    await scheduleAlarmsInSW(alarms);
+    await postToSW({ type: 'SCHEDULE_ALARM', alarms });
+  }
+
+  // Also save to server for cron-push (background push when app is closed)
+  try {
+    const sub = await subscribeToPush();
+    if (sub) {
+      await savePushSubscriptionToServer(sub, events);
+    }
+  } catch (err) {
+    console.warn('[Push] Could not save subscription to server:', err);
   }
 
   return events.length;
@@ -330,28 +322,29 @@ export function updateLiveNotificationState(
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (window.Notification.permission !== 'granted') return;
 
-  // Send heartbeat TICK to SW every call so the SW can check its alarm store
+  // Heartbeat tick → SW checks IndexedDB alarms immediately
   tickSWAlarmCheck();
 
   if (ongoingEvent) {
-    const eventKey = `ongoing-${ongoingEvent.id || ongoingEvent.title}-${ongoingEvent.time}`;
-    if (lastNotifiedEventId !== eventKey) {
-      lastNotifiedEventId = eventKey;
-      const timeRange = ongoingEvent.rawTime || `${ongoingEvent.time} – ${getFormattedEndTime(ongoingEvent.time)}`;
-      showNotificationViaSW(`🟢 LIVE NOW: ${ongoingEvent.title}`, {
-        body: `⏰ ${timeRange}  📍 ${ongoingEvent.venue || 'Campus Classroom'}`,
-        tag: 'schedule-sync-live-status',
+    const key = `ongoing-${ongoingEvent.id || ongoingEvent.title}-${ongoingEvent.time}`;
+    if (lastNotifiedEventId !== key) {
+      lastNotifiedEventId = key;
+      const timeRange = ongoingEvent.rawTime ||
+        `${ongoingEvent.time} – ${getFormattedEndTime(ongoingEvent.time)}`;
+      showNotificationViaSW(`🟢 LIVE: ${ongoingEvent.title}`, {
+        body: `${timeRange}${ongoingEvent.venue ? ` · ${ongoingEvent.venue}` : ''}`.slice(0, 120),
+        tag: 'schedule-sync-live',
         renotify: true,
         requireInteraction: true,
       });
     }
   } else if (nextUpEvent) {
-    const eventKey = `next-${nextUpEvent.id || nextUpEvent.title}-${nextUpEvent.time}`;
-    if (lastNotifiedEventId !== eventKey && lastNotifiedEventId?.startsWith('ongoing-')) {
-      lastNotifiedEventId = eventKey;
+    const key = `next-${nextUpEvent.id || nextUpEvent.title}-${nextUpEvent.time}`;
+    if (lastNotifiedEventId !== key && lastNotifiedEventId?.startsWith('ongoing-')) {
+      lastNotifiedEventId = key;
       showNotificationViaSW(`⚡ NEXT: ${nextUpEvent.title}`, {
-        body: `Starts at ${nextUpEvent.time}${nextUpEvent.venue ? ` in ${nextUpEvent.venue}` : ''}. Get ready!`,
-        tag: 'schedule-sync-live-status',
+        body: `Starts at ${nextUpEvent.time}${nextUpEvent.venue ? ` · ${nextUpEvent.venue}` : ''}`.slice(0, 120),
+        tag: 'schedule-sync-next',
         renotify: true,
         requireInteraction: false,
       });
@@ -367,8 +360,18 @@ export async function sendInstantTestNotification(): Promise<boolean> {
   if (!granted) return false;
 
   if (Platform.OS === 'web') {
+    // Also try to subscribe to Web Push at this point (contextual — user just granted permission)
+    try {
+      const sub = await subscribeToPush();
+      if (sub) {
+        console.log('[Push] Subscribed to Web Push successfully');
+        // Save subscription to server immediately (events will be saved on next scheduleAllEvents)
+        await savePushSubscriptionToServer(sub, []);
+      }
+    } catch {}
+
     await showNotificationViaSW('🔔 RoutineSync Test', {
-      body: '✅ Notifications working! Schedule alerts will appear at class time.',
+      body: '✅ Notifications working! Class alerts will appear even when the app is in the background.',
       tag: 'routinesync-test',
       renotify: true,
       requireInteraction: false,
@@ -379,7 +382,7 @@ export async function sendInstantTestNotification(): Promise<boolean> {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '🔔 RoutineSync Test',
-      body: '✅ Notifications working! Schedule alerts will appear at class time.',
+      body: '✅ Notifications working! Class alerts will appear at class time.',
       sound: 'default',
       priority: Notifications.AndroidNotificationPriority.MAX,
       vibrate: [0, 250, 250, 250],

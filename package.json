@@ -37,7 +37,8 @@
   "devDependencies": {
     "@types/papaparse": "^5.5.2",
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "web-push": "^3.6.7"
   },
   "scripts": {
     "start": "expo start",

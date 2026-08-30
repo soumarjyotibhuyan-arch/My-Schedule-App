@@ -4,9 +4,16 @@
   "cleanUrls": true,
   "framework": null,
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     {
-      "source": "/((?!_expo/|.*\\.(?:js|css|png|jpg|jpeg|gif|ico|json|svg|woff|woff2|ttf|eot)$).*)",
+      "source": "/((?!_expo/|api/|.*\\.(?:js|css|png|jpg|jpeg|gif|ico|json|svg|woff|woff2|ttf|eot)$).*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-push",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
