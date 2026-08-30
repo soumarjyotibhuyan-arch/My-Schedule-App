@@ -21,6 +21,8 @@ import { parseExcelAsync } from '../utils/excelParser';
 import { getEvents, saveEvents, clearEvents, getDefaultReminderOffset, saveDefaultReminderOffset, saveColumnTemplate, getSavedColumnTemplate } from '../utils/storage';
 import { analyzeGridStructure, parseGridWithMapping, AnalysisResult, ColumnMapping } from '../utils/columnMapper';
 import ColumnMapperModal from '../components/ColumnMapperModal';
+import ParseResultPreview from '../components/ParseResultPreview';
+import { runAgenticPipelineWithMeta, PipelineResult } from '../utils/agenticPipeline';
 import {
   requestNotificationPermissions,
   scheduleAllEvents,
@@ -249,6 +251,17 @@ export default function HomeScreen() {
   const [declutterEnabled, setDeclutterEnabled] = useState(false);
   const [filterPastEvents, setFilterPastEvents] = useState(false);
   const [realTimeCtx, setRealTimeCtx] = useState<RealTimeContext>(getRealTimeContext());
+
+  // Universal format engine preview states
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewMeta, setPreviewMeta] = useState<{
+    events: ScheduleEvent[];
+    layoutType: string;
+    confidence: number;
+    parserName: string;
+    aiPowered?: boolean;
+  } | null>(null);
+
   const rollingDays = getRollingDays();
 
   // 15-second live real-time tick timer & Live Notification Sync
@@ -360,29 +373,93 @@ export default function HomeScreen() {
       return;
     }
 
-    const analysis = analyzeGridStructure(gridRows);
-    setActiveGridRows(gridRows);
+    try {
+      const rawText = gridRows.map(row => row.join(' | ')).join('\n');
+      const pipelineRes = await runAgenticPipelineWithMeta(rawText, gridRows);
 
-    // 1. Check if user already saved a custom template memory for this file layout
-    const savedTemplate = await getSavedColumnTemplate(analysis.fingerprint);
+      if (pipelineRes.events.length === 0) {
+        showAlert('No Events Found', 'We could not automatically detect any timetable events. You can try manual column mapping.');
+        // Fall back to old columnAnalysis
+        const analysis = analyzeGridStructure(gridRows);
+        setActiveGridRows(gridRows);
+        setColumnAnalysis(analysis);
+        setLoading(false);
+        return;
+      }
 
-    if (savedTemplate && !forceInspector) {
-      // Instant auto-apply saved template memory!
-      const parsed = parseGridWithMapping(gridRows, savedTemplate);
-      await saveParsedEvents(parsed);
-      return;
-    }
-
-    // 2. If confidence score < 85% or manual inspector requested -> Trigger User-In-The-Loop Confirmation UI
-    if (analysis.confidenceScore < 85 || forceInspector) {
-      setColumnAnalysis(analysis);
+      setPreviewMeta(pipelineRes);
+      setPreviewVisible(true);
       setLoading(false);
-      return;
+    } catch (err) {
+      console.error('Pipeline error:', err);
+      showAlert('Parsing Failed', 'The agentic parsing engine encountered an error.');
+      setLoading(false);
     }
+  };
 
-    // 3. High confidence auto-parse
-    const parsed = parseGridWithMapping(gridRows, analysis.mapping);
-    await saveParsedEvents(parsed);
+  const handleConfirmPreview = (confirmedEvents: ScheduleEvent[], options: { isRecurring: boolean; defaultReminder: number }) => {
+    setPreviewVisible(false);
+    setLoading(true);
+
+    const finalEvents = confirmedEvents.map(e => {
+      const cleanEvent = { ...e, reminderMinutesBefore: options.defaultReminder };
+      if (options.isRecurring) {
+        delete cleanEvent.date;
+      }
+      return cleanEvent;
+    });
+
+    if (Platform.OS === 'web') {
+      const replace = window.confirm(
+        `Importing ${finalEvents.length} classes.\n\nClick OK to REPLACE your current schedule.\nClick Cancel to APPEND to your current schedule.`
+      );
+      saveFinalEvents(finalEvents, !!replace);
+    } else {
+      Alert.alert(
+        'Import Schedule',
+        `Would you like to replace your current schedule or append these ${finalEvents.length} classes to it?`,
+        [
+          {
+            text: 'Replace Current',
+            onPress: () => saveFinalEvents(finalEvents, true),
+          },
+          {
+            text: 'Append to Current',
+            onPress: () => saveFinalEvents(finalEvents, false),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => setLoading(false),
+          }
+        ]
+      );
+    }
+  };
+
+  const saveFinalEvents = async (importedEvents: ScheduleEvent[], replace: boolean) => {
+    const todayStr = getTodayDateString();
+    const activeEvents = filterPastEvents 
+      ? importedEvents.filter(e => !e.date || !isPastDate(e.date, todayStr))
+      : importedEvents;
+
+    const updated = replace ? [...activeEvents] : [...events, ...activeEvents];
+    setEvents(updated);
+    await saveEvents(updated);
+    setSelectedTab('all');
+    setSelectedDateStr(null);
+
+    const summaryText = replace
+      ? `Imported schedule with ${activeEvents.length} active classes (replaced existing).`
+      : `Added ${activeEvents.length} active classes to your current schedule.`;
+
+    if (permissionGranted) {
+      const count = await scheduleAllEvents(updated);
+      showAlert('Sync Successful', `${summaryText} Set ${count} alarms.`);
+    } else {
+      showAlert('Import Completed', summaryText);
+    }
+    setLoading(false);
   };
 
   const handleConfirmColumnMapping = async (confirmedMapping: ColumnMapping, saveAsTemplate: boolean) => {
@@ -396,7 +473,17 @@ export default function HomeScreen() {
     const parsed = parseGridWithMapping(activeGridRows, confirmedMapping);
     setColumnAnalysis(null);
     setActiveGridRows(null);
-    await saveParsedEvents(parsed);
+    
+    // Send to preview modal instead of saving directly!
+    setPreviewMeta({
+      events: parsed,
+      layoutType: 'Linear (Mapped)',
+      confidence: 100,
+      aiPowered: false,
+      parserName: 'Column Mapping Heuristic',
+    });
+    setPreviewVisible(true);
+    setLoading(false);
   };
 
   const handleLoadDemoSchedule = async () => {
@@ -482,6 +569,7 @@ export default function HomeScreen() {
           'application/csv',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/vnd.ms-excel',
+          'application/pdf',
         ],
         copyToCacheDirectory: true,
       });
@@ -496,7 +584,15 @@ export default function HomeScreen() {
       const cleanBase64 = base64.trim();
 
       if (fileName.endsWith('.pdf') || cleanBase64.startsWith('JVBER')) {
-        showAlert('PDF Unsupported', 'PDF compatibility has been disabled. Please upload a CSV (.csv) or Excel (.xlsx / .xls) timetable schedule.');
+        const content = await readFileAsText(asset.uri);
+        const pipelineRes = await runAgenticPipelineWithMeta(content || base64);
+        if (pipelineRes.events.length === 0) {
+          showAlert('No Events Found', 'We could not extract any events from this PDF. Please verify it is a digital export rather than a scanned image.');
+          setLoading(false);
+          return;
+        }
+        setPreviewMeta(pipelineRes);
+        setPreviewVisible(true);
         setLoading(false);
         return;
       }
@@ -1321,6 +1417,22 @@ function formatDateHeader(dateStr?: string): string {
               setLoading(false);
             }}
             theme={theme}
+          />
+        )}
+
+        {/* Universal Timetable Format Engine Parse Result Review Modal */}
+        {previewMeta && (
+          <ParseResultPreview
+            visible={previewVisible}
+            events={previewMeta.events}
+            layoutType={previewMeta.layoutType}
+            confidence={previewMeta.confidence}
+            parserName={previewMeta.parserName}
+            onCancel={() => {
+              setPreviewVisible(false);
+              setPreviewMeta(null);
+            }}
+            onConfirm={handleConfirmPreview}
           />
         )}
       </SafeAreaView>
